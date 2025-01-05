@@ -2,10 +2,15 @@ import { isPlayoffWeek } from './seasonUtils';
 
 // Date parsing and formatting
 export function parseGameTime(timeString: string): Date {
-  // Handle final game states
+  // Handle special game states
   if (!timeString ||
     timeString.toLowerCase() === 'final' ||
-    timeString.toLowerCase() === 'final/ot') {
+    timeString.toLowerCase() === 'final/ot' ||
+    timeString.toLowerCase() === 'halftime' ||
+    timeString.toLowerCase() === 'half' ||
+    timeString.toLowerCase() === 'postponed' ||
+    timeString.toLowerCase() === 'delayed'
+  ) {
     return new Date();
   }
 
