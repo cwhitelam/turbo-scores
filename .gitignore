@@ -19,6 +19,7 @@ coverage
 .env.development.local
 .env.test.local
 .env.production.local
+.bolt
 
 # Debug
 npm-debug.log*
@@ -34,3 +35,6 @@ yarn-error.log*
 # System
 .DS_Store
 Thumbs.db
+
+# Proprietary
+src/config/api.ts
