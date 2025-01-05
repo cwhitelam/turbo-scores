@@ -1,13 +1,14 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "turbo-scores",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "vite preview --host --port $PORT"
   },
   "dependencies": {
     "lucide-react": "^0.344.0",
@@ -29,5 +30,8 @@
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
     "vite": "^5.4.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
