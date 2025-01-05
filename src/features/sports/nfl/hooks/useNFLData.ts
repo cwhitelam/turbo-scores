@@ -1,51 +1,19 @@
-import { useState, useEffect } from 'react';
-import { Game } from '../../../../types/game';
-import { getScoreboard } from '../../../../services/nflApi';
-import { shouldResetSchedule, isGameFromPreviousWeek } from '../../../../utils/scheduleUtils';
-import { getUpdateInterval } from '../../../../utils/updateIntervalUtils';
+import { useGameData } from '../../../../context/GameDataContext';
+import { useCallback } from 'react';
 
 export function useNFLData() {
-    const [games, setGames] = useState<Game[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        let intervalId: NodeJS.Timeout;
-
-        const fetchData = async () => {
-            try {
-                const data = await getScoreboard();
-
-                // Filter out games from previous week if it's time to reset
-                const filteredGames = shouldResetSchedule()
-                    ? data.filter(game => !isGameFromPreviousWeek(game.startTime))
-                    : data;
-
-                setGames(filteredGames);
-                setError(null);
-
-                // Update interval based on current games state
-                if (intervalId) {
-                    clearInterval(intervalId);
-                }
-                intervalId = setInterval(fetchData, getUpdateInterval(filteredGames));
-            } catch (err) {
-                setError('Failed to fetch NFL data');
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        // Initial fetch
-        fetchData();
-
-        return () => {
-            if (intervalId) {
-                clearInterval(intervalId);
-            }
-        };
+    const handleError = useCallback((error: Error) => {
+        if (error.message.includes('HTTP error')) {
+            return 'NFL API is currently unavailable. Please try again later.';
+        }
+        if (error.message.includes('Network')) {
+            return 'Unable to connect to NFL data service. Please check your internet connection.';
+        }
+        if (error.message.includes('Invalid')) {
+            return 'Received invalid NFL game data format. Our team has been notified.';
+        }
+        return `Failed to fetch NFL data: ${error.message}`;
     }, []);
 
-    return { games, loading, error };
+    return useGameData('NFL', handleError);
 } 
