@@ -3,6 +3,15 @@ import { WinProbability } from './WinProbability';
 import { useSport } from '../../context/SportContext';
 import { Dot } from 'lucide-react';
 
+/**
+ * TeamDisplay component renders a team's information including:
+ * - Team logo
+ * - Team name
+ * - Record
+ * - Score
+ * - Possession indicator (NFL only)
+ * - Win probability
+ */
 interface TeamDisplayProps {
     team: TeamInfo;
     gameId: string;
