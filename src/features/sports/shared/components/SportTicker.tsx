@@ -1,4 +1,3 @@
-import React from 'react';
 import styles from '../../../../components/common/StatsTicker.module.css';
 import { useGameState } from '../../../../hooks/useGameState';
 import { useGameData } from '../../../../hooks/game/useGameData';
@@ -6,6 +5,7 @@ import { fetchAndProcessStats } from '../utils/statsProcessor';
 import { StatItem } from '../../../../components/common/StatItem';
 import { GameCountdown } from '../../../../components/common/GameCountdown';
 import { SportType } from '../types/sports';
+import { PlayerStat } from '../../../../types/stats';
 
 interface SportTickerProps {
     gameId?: string;
@@ -14,12 +14,18 @@ interface SportTickerProps {
     sport: SportType;
 }
 
+const initialStats = {
+    stats: [] as PlayerStat[],
+    timestamp: Date.now(),
+    isComplete: false
+};
+
 export function SportTicker({ gameId, className = '', startTime, sport }: SportTickerProps) {
     const gameState = useGameState(gameId);
-    const { stats = [], isComplete } = useGameData(
+    const { stats, isComplete} = useGameData(
         gameId,
         () => fetchAndProcessStats(gameId || '', sport),
-        { stats: [], timestamp: Date.now(), isComplete: false }
+        initialStats
     );
 
     if (!gameId) return null;

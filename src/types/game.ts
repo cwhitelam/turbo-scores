@@ -6,6 +6,7 @@ export interface TeamInfo {
   abbreviation: string;
   score: number;
   record: string;
+  winProbability?: number;
 }
 
 export interface VenueInfo {

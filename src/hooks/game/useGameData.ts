@@ -1,70 +1,110 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { useGameState } from '../useGameState';
-import { useBatchFetch } from './useBatchFetch';
-import { useGameEvents } from './useGameEvents';
-import { useUpdateQueue } from './useUpdateQueue';
-import { useUpdateInterval } from './useUpdateInterval';
-import { useDataChange } from './useDataChange';
+import { useState, useEffect } from 'react';
+import { Game } from '../../types/game';
+import { Sport } from '../../types/sport';
+import { PlayerStat } from '../../types/stats';
+import { shouldResetSchedule, isGameFromPreviousWeek } from '../../utils/scheduleUtils';
+import { getUpdateInterval } from '../../utils/updateIntervalUtils';
 
-export function useGameData<T>(
+export interface GameStats {
+    stats: PlayerStat[];
+    timestamp: number;
+    isComplete: boolean;
+}
+
+interface GameDataResult {
+    games: Game[];
+    isLoading: boolean;
+    error: string | null;
+}
+
+interface SingleGameDataResult extends GameStats {
+    isLoading: boolean;
+    error: string | null;
+}
+
+export function useGameData(
+    sport: Sport,
+    fetchData: () => Promise<Game[]>
+): GameDataResult;
+export function useGameData(
     gameId: string | undefined,
-    fetchData: () => Promise<T>,
-    initialData: T
-) {
-    const [data, setData] = useState<T>(initialData);
-    const gameState = useGameState(gameId);
-    const lastDataRef = useRef<T>(initialData);
-    const isMountedRef = useRef(true);
-    const isInitialFetchRef = useRef(true);
-    const hasDataChanged = useDataChange();
+    fetchStats: () => Promise<GameStats>,
+    initialData: GameStats
+): SingleGameDataResult;
+export function useGameData(
+    sportOrGameId: Sport | string | undefined,
+    fetchDataOrStats: () => Promise<Game[] | GameStats>,
+    initialData?: GameStats
+): GameDataResult | SingleGameDataResult {
+    if (initialData) {
+        // Single game stats mode
+        const [stats, setStats] = useState<GameStats>(initialData);
+        const [isLoading, setIsLoading] = useState(true);
+        const [error, setError] = useState<string | null>(null);
 
-    // Initialize hooks
-    const batchFetch = useBatchFetch();
-    const processUpdate = useGameEvents(gameId, isMountedRef, lastDataRef);
-    const queueUpdate = useUpdateQueue();
+        useEffect(() => {
+            if (!sportOrGameId) return;
 
-    // Update data function
-    const updateData = useCallback(async () => {
-        if (!gameId || !isMountedRef.current) return;
-
-        await queueUpdate(
-            gameId,
-            async () => {
-                // Use batch fetching for initial load
-                const newData = isInitialFetchRef.current
-                    ? await batchFetch(gameId, fetchData)
-                    : await fetchData();
-
-                isInitialFetchRef.current = false;
-                return newData;
-            },
-            async (newData) => {
-                if (hasDataChanged(lastDataRef.current, newData)) {
-                    lastDataRef.current = newData;
-                    setData(newData);
-                    await processUpdate(newData);
+            const fetchStats = async () => {
+                try {
+                    const data = await fetchDataOrStats() as GameStats;
+                    setStats(data);
+                    setError(null);
+                } catch (err) {
+                    setError('Failed to fetch game stats');
+                    console.error(err);
+                } finally {
+                    setIsLoading(false);
                 }
-            }
-        );
-    }, [gameId, fetchData, batchFetch, queueUpdate, processUpdate, hasDataChanged]);
+            };
 
-    // Set up update interval
-    useUpdateInterval(gameId, gameState, updateData);
+            fetchStats();
+            const intervalId = setInterval(fetchStats, 30000);
 
-    // Handle component mount/unmount
-    useEffect(() => {
-        isMountedRef.current = true;
-        return () => {
-            isMountedRef.current = false;
-        };
-    }, [gameId]);
+            return () => clearInterval(intervalId);
+        }, [sportOrGameId, fetchDataOrStats]);
 
-    // Reset refs when gameId changes
-    useEffect(() => {
-        if (!gameId) return;
-        lastDataRef.current = initialData;
-        isInitialFetchRef.current = true;
-    }, [gameId, initialData]);
+        return { ...stats, isLoading, error };
+    } else {
+        // Multiple games mode
+        const [games, setGames] = useState<Game[]>([]);
+        const [isLoading, setIsLoading] = useState(true);
+        const [error, setError] = useState<string | null>(null);
 
-    return data;
+        useEffect(() => {
+            let intervalId: NodeJS.Timeout;
+
+            const fetchGames = async () => {
+                try {
+                    const data = await fetchDataOrStats() as Game[];
+                    const filteredGames = shouldResetSchedule()
+                        ? data.filter(game => !isGameFromPreviousWeek(game.startTime))
+                        : data;
+
+                    setGames(filteredGames);
+                    setError(null);
+
+                    if (intervalId) {
+                        clearInterval(intervalId);
+                    }
+                    intervalId = setInterval(fetchGames, getUpdateInterval(filteredGames));
+                } catch (err) {
+                    setError(`Failed to fetch ${sportOrGameId} data`);
+                    console.error(err);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            fetchGames();
+
+            return () => {
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+            };
+        }, [sportOrGameId, fetchDataOrStats]);
+
+        return { games, isLoading, error };
+    }
 } 

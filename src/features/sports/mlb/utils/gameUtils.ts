@@ -13,7 +13,7 @@ export function formatMLBSituation(situation: GameSituation): string {
     return formatGameSituation(situation, 'MLB');
 }
 
-export function getBaseRunners(situation: GameSituation): string {
+export function getBaseRunners(): string {
     const bases = [false, false, false]; // first, second, third
     // Implementation would depend on your data structure
     return bases.map(base => base ? '●' : '○').join(' ');
