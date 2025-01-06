@@ -1,14 +1,15 @@
 import { GameWeather, VenueInfo } from '../types/game';
 
+// Log environment info on module load
+console.log('Weather API Module Environment:', {
+  env: import.meta.env,
+  mode: import.meta.env.MODE,
+  prod: import.meta.env.PROD,
+  hasApiKey: !!import.meta.env.VITE_OPENWEATHER_API_KEY
+});
+
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
-
-// Log environment info on module load
-console.log('Weather API Environment:', {
-  hasApiKey: !!API_KEY,
-  isProd: import.meta.env.PROD,
-  mode: import.meta.env.MODE
-});
 
 // Default weather values when API is not available
 const DEFAULT_WEATHER: GameWeather = {
@@ -19,8 +20,10 @@ const DEFAULT_WEATHER: GameWeather = {
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
   // If no API key is configured, return default weather without making API call
   if (!API_KEY) {
-    console.warn('OpenWeather API key is not configured. Weather data will not be fetched.', {
-      envVars: import.meta.env,
+    console.warn('OpenWeather API key is not configured:', {
+      env: import.meta.env,
+      mode: import.meta.env.MODE,
+      prod: import.meta.env.PROD,
       venue
     });
     return DEFAULT_WEATHER;
@@ -42,6 +45,11 @@ export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather>
     }
 
     const data = await response.json();
+    console.log('Weather API Response:', {
+      temp: data.main.temp,
+      condition: data.weather[0].main,
+      venue: `${venue.city}, ${venue.state}`
+    });
 
     return {
       temp: Math.round(data.main.temp),

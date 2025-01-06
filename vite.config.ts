@@ -8,19 +8,12 @@ export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   // Debug environment loading
-  console.log('Vite Config - Build Info:', {
-    command,
-    mode,
+  console.log('Vite Config - Environment Variables:', {
     NODE_ENV: process.env.NODE_ENV,
-    BUILD_ENV: env.VITE_APP_ENV,
-  });
-
-  // Get the API key from Railway's environment variables during build
-  const apiKey = process.env.VITE_OPENWEATHER_API_KEY || env.VITE_OPENWEATHER_API_KEY;
-
-  console.log('Vite Config - API Key Status:', {
-    hasKey: !!apiKey,
-    source: process.env.VITE_OPENWEATHER_API_KEY ? 'Railway' : (env.VITE_OPENWEATHER_API_KEY ? 'Env File' : 'None')
+    VITE_APP_ENV: env.VITE_APP_ENV,
+    hasOpenWeatherKey: !!env.VITE_OPENWEATHER_API_KEY,
+    mode,
+    command,
   });
 
   const isDev = mode === 'development';
@@ -62,15 +55,14 @@ export default defineConfig(({ command, mode }) => {
       host: true,
     },
     define: {
-      // Replace process.env with a static object containing our env vars
-      'process.env': {
-        NODE_ENV: JSON.stringify(process.env.NODE_ENV),
-      },
-      // Explicitly inject the API key into import.meta.env
-      'import.meta.env.VITE_OPENWEATHER_API_KEY': JSON.stringify(apiKey),
-      'import.meta.env.MODE': JSON.stringify(mode),
-      'import.meta.env.PROD': mode === 'production',
-      'import.meta.env.DEV': mode === 'development',
+      __APP_ENV__: JSON.stringify(env.VITE_APP_ENV),
+      'import.meta.env': JSON.stringify({
+        ...env,
+        MODE: mode,
+        DEV: mode === 'development',
+        PROD: mode === 'production',
+        SSR: false
+      })
     },
   };
 });
