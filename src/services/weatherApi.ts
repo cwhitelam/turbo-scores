@@ -1,6 +1,16 @@
 import { GameWeather, VenueInfo } from '../types/game';
 import { logFetch, logFetchSuccess, logFetchError } from '../utils/loggingUtils';
 
+// Debug all environment variables in production
+if (import.meta.env.PROD) {
+  console.log('DEBUG: All Vite env variables:', {
+    VITE_OPENWEATHER_API_KEY: import.meta.env.VITE_OPENWEATHER_API_KEY,
+    MODE: import.meta.env.MODE,
+    PROD: import.meta.env.PROD,
+    DEV: import.meta.env.DEV,
+  });
+}
+
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 

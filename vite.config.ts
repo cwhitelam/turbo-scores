@@ -5,8 +5,15 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '');
+
+  // Debug environment loading
+  console.log('Vite Config - Environment Mode:', mode);
+  console.log('Vite Config - Environment Variables:', {
+    VITE_OPENWEATHER_API_KEY: !!env.VITE_OPENWEATHER_API_KEY ? '[SET]' : '[NOT SET]',
+    NODE_ENV: env.NODE_ENV,
+    VITE_APP_ENV: env.VITE_APP_ENV
+  });
 
   const isDev = mode === 'development';
 
@@ -23,7 +30,7 @@ export default defineConfig(({ command, mode }) => {
       minify: isDev ? false : 'terser',
       terserOptions: isDev ? undefined : {
         compress: {
-          drop_console: true,
+          drop_console: false,
         },
       },
       rollupOptions: {
@@ -48,6 +55,8 @@ export default defineConfig(({ command, mode }) => {
     },
     define: {
       __APP_ENV__: JSON.stringify(env.VITE_APP_ENV),
+      'import.meta.env.VITE_OPENWEATHER_API_KEY': JSON.stringify(env.VITE_OPENWEATHER_API_KEY),
+      'import.meta.env.MODE': JSON.stringify(mode),
     },
   };
 });
