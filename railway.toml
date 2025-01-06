@@ -1,17 +1,7 @@
-# Railway deployment configuration
-# Deployments are scheduled via CRON and manual triggers only
-
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 buildCommand = "docker build --build-arg VITE_OPENWEATHER_API_KEY=$VITE_OPENWEATHER_API_KEY --build-arg VITE_APP_ENV=$VITE_APP_ENV --build-arg VITE_APP_URL=$VITE_APP_URL --build-arg VITE_API_BASE_URL=$VITE_API_BASE_URL --build-arg VITE_FEATURE_DEBUG_MODE=$VITE_FEATURE_DEBUG_MODE -t app ."
-watchPatterns = [
-    "src/**/*.{ts,tsx}",
-    "public/**/*",
-    "Dockerfile",
-    "package.json",
-    "vite.config.ts"
-]
 
 [deploy]
 startCommand = "node server.js"
@@ -19,6 +9,7 @@ healthcheckPath = "/"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+cronSchedule = "0 4 * * *"  # Deploy at 4 AM UTC daily
 
 [deploy.envs]
 NODE_ENV = "production"
