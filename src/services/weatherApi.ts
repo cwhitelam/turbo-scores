@@ -1,4 +1,5 @@
 import { GameWeather, VenueInfo } from '../types/game';
+import { logFetch, logFetchSuccess, logFetchError } from '../utils/loggingUtils';
 
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
@@ -11,35 +12,35 @@ const DEFAULT_WEATHER: GameWeather = {
 
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
   // Log API key status (without exposing the key)
-  console.log('Weather API Key status:', API_KEY ? 'Present' : 'Missing');
+  logFetch('Weather API', { status: API_KEY ? 'Present' : 'Missing' });
 
   // If no API key is configured, return default weather without making API call
   if (!API_KEY) {
-    console.warn('OpenWeather API key is not configured');
+    logFetchError('Weather API', 'API key is not configured');
     return DEFAULT_WEATHER;
   }
 
   try {
     const url = `${BASE_URL}/weather?q=${venue.city},${venue.state},US&units=imperial&appid=${API_KEY}`;
-    console.log('Fetching weather for:', `${venue.city}, ${venue.state}`);
+    logFetch('Weather API', { location: `${venue.city}, ${venue.state}` });
 
     const response = await fetch(url);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Weather API error:', response.status, errorText);
+      logFetchError('Weather API', { status: response.status, error: errorText });
       return DEFAULT_WEATHER;
     }
 
     const data = await response.json();
-    console.log('Weather data received:', { temp: data.main.temp, condition: data.weather[0].main });
+    logFetchSuccess('Weather API', { temp: data.main.temp, condition: data.weather[0].main });
 
     return {
       temp: Math.round(data.main.temp),
       condition: formatFootballCondition(data.weather[0].main, data.wind.speed, data.snow?.['1h'], data.rain?.['1h'])
     };
   } catch (error) {
-    console.error('Weather API error:', error);
+    logFetchError('Weather API', error);
     return DEFAULT_WEATHER;
   }
 }
