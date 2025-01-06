@@ -8,4 +8,8 @@ A real-time sports scoreboard application.
 - Weather information for outdoor games
 - Possession indicators for NFL games
 
-<!-- Test push for CRON deployment --> 
+## Deployment
+- Automated deployments via CRON schedule (4 AM UTC)
+- Production: [turboscores.live](https://turboscores.live)
+
+<!-- Second test push for CRON deployment --> 
