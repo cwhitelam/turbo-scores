@@ -26,14 +26,26 @@ export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather>
 
   try {
     const url = `/api/weather?city=${encodeURIComponent(venue.city)}&state=${encodeURIComponent(venue.state)}`;
+    console.log('Fetching weather from:', url);
 
     const response = await fetch(url);
-    const data = await response.json();
+    let data;
+
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      console.error('Weather API Parse Error:', {
+        status: response.status,
+        text: await response.text(),
+        error: parseError
+      });
+      throw new Error('Failed to parse weather API response');
+    }
 
     if (!response.ok) {
       const error = {
         status: response.status,
-        error: data.error,
+        error: data.error || 'Unknown error',
         venue: `${venue.city}, ${venue.state}`
       };
       console.error('Weather API Response Error:', error);

@@ -9,10 +9,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// Weather API proxy endpoint
+// Weather API proxy endpoint - MUST come before static file handling
 app.get('/api/weather', async (req, res) => {
     const { city, state } = req.query;
     const API_KEY = process.env.VITE_OPENWEATHER_API_KEY;
@@ -23,7 +20,9 @@ app.get('/api/weather', async (req, res) => {
     }
 
     try {
-        const url = `https://api.openweathermap.org/data/2.5/weather?q=${city},${state},US&units=imperial&appid=${API_KEY}`;
+        const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)},${encodeURIComponent(state)},US&units=imperial&appid=${API_KEY}`;
+        console.log('Fetching weather for:', { city, state });
+        
         const response = await fetch(url);
         const data = await response.json();
 
@@ -32,12 +31,22 @@ app.get('/api/weather', async (req, res) => {
             return res.status(response.status).json(data);
         }
 
+        console.log('Weather API Success:', {
+            city,
+            state,
+            temp: data.main.temp,
+            condition: data.weather[0].main
+        });
+
         res.json(data);
     } catch (error) {
         console.error('Weather API Error:', error);
         res.status(500).json({ error: 'Failed to fetch weather data' });
     }
 });
+
+// Serve static files AFTER API routes
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Handle React routing, return all requests to React app
 app.get('*', (req, res) => {
