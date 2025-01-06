@@ -1,19 +1,24 @@
 import { TeamInfo } from '../../types/game';
 import { WinProbability } from './WinProbability';
 import { useSport } from '../../context/SportContext';
+import { Dot } from 'lucide-react';
 
 interface TeamDisplayProps {
     team: TeamInfo;
     gameId: string;
+    hasPossession?: boolean;
+    isHomeTeam?: boolean;
+    quarter?: string;
 }
 
-export function TeamDisplay({ team, gameId }: TeamDisplayProps) {
+export function TeamDisplay({ team, gameId, hasPossession, isHomeTeam, quarter }: TeamDisplayProps) {
     const { currentSport } = useSport();
     const sport = currentSport.toLowerCase();
+    const isGameOver = quarter?.startsWith('F') || quarter === 'Final';
 
     return (
         <div
-            className="p-4 sm:p-8 text-center"
+            className="p-4 sm:p-8 text-center relative"
             role="group"
             aria-label={`${team.name} team information`}
         >
@@ -28,11 +33,18 @@ export function TeamDisplay({ team, gameId }: TeamDisplayProps) {
             <div className="text-xs text-white/70 mb-1 sm:mb-2">
                 ({team.record})
             </div>
-            <div
-                className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 text-white"
-                aria-label={`Score: ${team.score}`}
-            >
-                {team.score}
+            <div className="relative">
+                {hasPossession && currentSport === 'NFL' && !isGameOver && (
+                    <div className={`absolute top-1/2 -translate-y-1/2 ${isHomeTeam ? 'left-[25%]' : 'right-[25%]'}`}>
+                        <Dot className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400 animate-pulse" />
+                    </div>
+                )}
+                <div
+                    className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 text-white"
+                    aria-label={`Score: ${team.score}`}
+                >
+                    {team.score}
+                </div>
             </div>
             <WinProbability
                 gameId={gameId}

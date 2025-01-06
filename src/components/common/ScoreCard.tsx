@@ -56,6 +56,14 @@ export function ScoreCard({
     const awayColors = teamColors[awayTeam.abbreviation] || DEFAULT_COLORS;
     const homeColors = teamColors[homeTeam.abbreviation] || DEFAULT_COLORS;
 
+    // Determine if possession should be shown based on game state
+    const shouldShowPossession = currentSport === 'NFL' &&
+        quarter !== 'Final' &&
+        quarter !== '0Q' &&
+        quarter !== 'Half' &&
+        quarter !== 'Delayed' &&
+        !quarter?.startsWith('F');
+
     return (
         <GameContextProvider
             quarter={quarter}
@@ -82,7 +90,13 @@ export function ScoreCard({
                             }}
                         >
                             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
-                            <TeamDisplay team={awayTeamInfo} gameId={id} />
+                            <TeamDisplay
+                                team={awayTeamInfo}
+                                gameId={id}
+                                hasPossession={shouldShowPossession && situation?.possession === awayTeam.abbreviation}
+                                isHomeTeam={false}
+                                quarter={quarter}
+                            />
                         </div>
                         <div
                             className="flex-1"
@@ -92,7 +106,13 @@ export function ScoreCard({
                             }}
                         >
                             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
-                            <TeamDisplay team={homeTeamInfo} gameId={id} />
+                            <TeamDisplay
+                                team={homeTeamInfo}
+                                gameId={id}
+                                hasPossession={shouldShowPossession && situation?.possession === homeTeam.abbreviation}
+                                isHomeTeam={true}
+                                quarter={quarter}
+                            />
                         </div>
                     </div>
                     <StatsTicker

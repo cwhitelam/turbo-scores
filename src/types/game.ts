@@ -25,6 +25,8 @@ export interface GamePlaySituation {
   distance?: number;
   yardLine?: number;
   possession?: string;
+  possessionText?: string;
+  downDistanceText?: string;
   // NHL specific
   powerPlay?: boolean;
   strength?: string;
