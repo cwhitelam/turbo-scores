@@ -6,7 +6,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install all dependencies (we need dev dependencies for building)
 RUN npm ci
 
 # Copy source code
@@ -22,13 +22,18 @@ WORKDIR /app
 
 # Copy built assets from builder
 COPY --from=builder /app/dist ./dist
+
+# Copy package files
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
+
+# Create a simple production server
+RUN echo 'import express from "express";import { fileURLToPath } from "url";import { dirname, join } from "path";const __filename = fileURLToPath(import.meta.url);const __dirname = dirname(__filename);const app = express();const port = process.env.PORT || 3000;app.use(express.static(join(__dirname, "dist")));app.get("*", (req, res) => {res.sendFile(join(__dirname, "dist", "index.html"));});app.listen(port, () => {console.log(`Server running on port ${port}`);});' > server.js
 
 # Expose port
 EXPOSE 3000
 
 # Start the application
-CMD ["npm", "start"] 
+CMD ["node", "server.js"] 
