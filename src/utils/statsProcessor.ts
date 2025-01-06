@@ -1,21 +1,23 @@
 import { PlayerStat, StatType } from '../types/stats';
 import { logFetch, logFetchSuccess, logFetchError } from './loggingUtils';
+import { SPORTS } from '../config/sports';
+import { Sport } from '../types/sport';
 
 const statsCache = new Map<string, { stats: PlayerStat[]; timestamp: number; isComplete: boolean }>();
 const CACHE_TTL = 30000; // 30 seconds
 const pendingFetches = new Map<string, Promise<{ stats: PlayerStat[]; timestamp: number; isComplete: boolean }>>();
 
-function getCacheKey(gameId: string): string {
-  return `game-${gameId}`;
+function getCacheKey(gameId: string, sport: Sport): string {
+  return `${sport}-${gameId}`;
 }
 
-export async function fetchAndProcessStats(gameId: string) {
+export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL') {
   if (!gameId) {
     return { stats: [], timestamp: Date.now(), isComplete: false };
   }
 
   const now = Date.now();
-  const cacheKey = getCacheKey(gameId);
+  const cacheKey = getCacheKey(gameId, sport);
   const cached = statsCache.get(cacheKey);
 
   // Return cached data if it's still valid
@@ -32,7 +34,12 @@ export async function fetchAndProcessStats(gameId: string) {
   // Create a new fetch promise
   const fetchPromise = (async () => {
     try {
-      const endpoint = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${gameId}`;
+      const sportConfig = SPORTS.find(s => s.name === sport);
+      if (!sportConfig) {
+        throw new Error(`Invalid sport: ${sport}`);
+      }
+
+      const endpoint = `https://site.api.espn.com/apis/site/v2/sports/${sportConfig.apiPath}/summary?event=${gameId}`;
       logFetch(endpoint);
 
       const response = await fetch(endpoint, { cache: 'no-store' });
@@ -89,7 +96,7 @@ export async function fetchAndProcessStats(gameId: string) {
       return result;
 
     } catch (error) {
-      logFetchError(`NFL Stats for game ${gameId}`, error);
+      logFetchError(`${sport} Stats for game ${gameId}`, error);
       return { stats: [], timestamp: now, isComplete: false };
     } finally {
       // Clean up the pending fetch
