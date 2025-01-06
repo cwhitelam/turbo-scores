@@ -3,35 +3,46 @@ import { GameWeather, VenueInfo } from '../types/game';
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
+// Default weather values when API is not available
+const DEFAULT_WEATHER: GameWeather = {
+  temp: 70,
+  condition: 'Clear'
+};
+
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
+  // If no API key is configured, return default weather without making API call
+  if (!API_KEY) {
+    return DEFAULT_WEATHER;
+  }
+
   try {
     const response = await fetch(
       `${BASE_URL}/weather?q=${venue.city},${venue.state},US&units=imperial&appid=${API_KEY}`
     );
-    
+
     if (!response.ok) {
-      throw new Error('Weather data unavailable');
+      return DEFAULT_WEATHER;
     }
 
     const data = await response.json();
-    
+
     return {
       temp: Math.round(data.main.temp),
       condition: formatFootballCondition(data.weather[0].main, data.wind.speed, data.snow?.['1h'], data.rain?.['1h'])
     };
   } catch (error) {
-    console.error('Weather API error:', error);
-    return {
-      temp: 70,
-      condition: 'Clear'
-    };
+    // Only log error in development
+    if (import.meta.env.VITE_APP_ENV === 'development') {
+      console.error('Weather API error:', error);
+    }
+    return DEFAULT_WEATHER;
   }
 }
 
 function formatFootballCondition(
-  condition: string, 
-  windSpeed: number, 
-  snowfall?: number, 
+  condition: string,
+  windSpeed: number,
+  snowfall?: number,
   rainfall?: number
 ): string {
   // Check for severe weather first
@@ -43,7 +54,7 @@ function formatFootballCondition(
   if (snowfall && snowfall > 0) {
     return snowfall > 2 ? 'Heavy Snow' : 'Light Snow';
   }
-  
+
   if (rainfall && rainfall > 0) {
     return rainfall > 2.5 ? 'Heavy Rain' : 'Light Rain';
   }
