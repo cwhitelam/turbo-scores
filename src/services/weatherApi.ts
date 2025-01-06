@@ -18,41 +18,22 @@ const DEFAULT_WEATHER: GameWeather = {
 };
 
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
-  // Log API key status (without exposing the key)
   logFetch('Weather API', {
-    status: API_KEY ? 'Present' : 'Missing',
     mode: import.meta.env.MODE,
     isProd: import.meta.env.PROD,
     venue: `${venue.city}, ${venue.state}`
   });
 
-  // If no API key is configured, return default weather without making API call
-  if (!API_KEY) {
-    const error = {
-      error: 'API key is not configured',
-      mode: import.meta.env.MODE,
-      isProd: import.meta.env.PROD,
-      env: {
-        hasKey: !!import.meta.env.VITE_OPENWEATHER_API_KEY,
-        mode: import.meta.env.MODE
-      }
-    };
-    console.error('Weather API Error:', error);
-    logFetchError('Weather API', error);
-    return DEFAULT_WEATHER;
-  }
-
   try {
-    const url = `${BASE_URL}/weather?q=${venue.city},${venue.state},US&units=imperial&appid=${API_KEY}`;
+    const url = `/api/weather?city=${encodeURIComponent(venue.city)}&state=${encodeURIComponent(venue.state)}`;
 
     const response = await fetch(url);
-    const responseText = await response.text();
+    const data = await response.json();
 
     if (!response.ok) {
       const error = {
         status: response.status,
-        statusText: response.statusText,
-        response: responseText,
+        error: data.error,
         venue: `${venue.city}, ${venue.state}`
       };
       console.error('Weather API Response Error:', error);
@@ -60,7 +41,6 @@ export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather>
       return DEFAULT_WEATHER;
     }
 
-    const data = JSON.parse(responseText);
     logFetchSuccess('Weather API', {
       temp: data.main.temp,
       condition: data.weather[0].main,
