@@ -18,6 +18,19 @@ export default defineConfig(({ command, mode }) => {
 
   const isDev = mode === 'development';
 
+  // Explicitly define environment variables for the client
+  const envVars = {
+    VITE_APP_ENV: env.VITE_APP_ENV,
+    VITE_APP_URL: env.VITE_APP_URL,
+    VITE_API_BASE_URL: env.VITE_API_BASE_URL,
+    VITE_OPENWEATHER_API_KEY: env.VITE_OPENWEATHER_API_KEY,
+    VITE_FEATURE_DEBUG_MODE: env.VITE_FEATURE_DEBUG_MODE,
+    MODE: mode,
+    DEV: mode === 'development',
+    PROD: mode === 'production',
+    SSR: false
+  };
+
   return {
     plugins: [react()],
     resolve: {
@@ -56,13 +69,16 @@ export default defineConfig(({ command, mode }) => {
     },
     define: {
       __APP_ENV__: JSON.stringify(env.VITE_APP_ENV),
-      'import.meta.env': JSON.stringify({
-        ...env,
-        MODE: mode,
-        DEV: mode === 'development',
-        PROD: mode === 'production',
-        SSR: false
-      })
+      // Explicitly inject each environment variable
+      'import.meta.env.VITE_APP_ENV': JSON.stringify(env.VITE_APP_ENV),
+      'import.meta.env.VITE_APP_URL': JSON.stringify(env.VITE_APP_URL),
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(env.VITE_API_BASE_URL),
+      'import.meta.env.VITE_OPENWEATHER_API_KEY': JSON.stringify(env.VITE_OPENWEATHER_API_KEY),
+      'import.meta.env.VITE_FEATURE_DEBUG_MODE': JSON.stringify(env.VITE_FEATURE_DEBUG_MODE),
+      'import.meta.env.MODE': JSON.stringify(mode),
+      'import.meta.env.DEV': mode === 'development',
+      'import.meta.env.PROD': mode === 'production',
+      'import.meta.env.SSR': false,
     },
   };
 });
