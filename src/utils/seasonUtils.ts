@@ -31,3 +31,13 @@ export function getSortedSports(): Sport[] {
     return aInSeason ? -1 : 1;
   });
 }
+
+export function isPlayoffWeek(): boolean {
+  const now = new Date();
+  const month = now.getMonth(); // 0-based (0 = January)
+  const date = now.getDate();
+
+  // NFL playoffs typically start in January (month 0)
+  // and run through early February (month 1)
+  return (month === 0) || (month === 1 && date <= 15);
+}

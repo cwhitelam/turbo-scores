@@ -1,4 +1,4 @@
-import { isPlayoffWeek } from './dateUtils';
+import { isPlayoffWeek } from './seasonUtils';
 
 export function shouldResetSchedule(): boolean {
   const now = new Date();
@@ -19,7 +19,7 @@ export function isGameFromPreviousWeek(gameTime: string): boolean {
   const now = new Date();
   const gameDate = parseGameDate(gameTime);
   const isPlayoffs = isPlayoffWeek();
-  
+
   if (isPlayoffs) {
     // If it's Saturday or later, games from Sunday-Friday are from previous week
     if (now.getDay() >= 6) { // Saturday-Sunday
@@ -31,7 +31,7 @@ export function isGameFromPreviousWeek(gameTime: string): boolean {
       return gameDate.getDay() >= 0 && gameDate.getDay() <= 3; // Sunday-Wednesday
     }
   }
-  
+
   return false;
 }
 
@@ -39,14 +39,14 @@ function parseGameDate(timeString: string): Date {
   const now = new Date();
   const [time, period] = timeString.split(' ');
   const [hours, minutes] = time.split(':').map(Number);
-  
+
   // Convert to 24-hour format
   let hour24 = hours;
   if (period === 'PM' && hours !== 12) hour24 += 12;
   if (period === 'AM' && hours === 12) hour24 = 0;
-  
+
   const gameDate = new Date(now);
   gameDate.setHours(hour24, minutes, 0, 0);
-  
+
   return gameDate;
 }
