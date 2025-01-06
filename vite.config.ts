@@ -8,14 +8,24 @@ export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   // Debug environment loading
-  console.log('Vite Config - Environment Mode:', mode);
-  console.log('Vite Config - Environment Variables:', {
+  console.log('Vite Config - Build Info:', {
+    command,
+    mode,
+    NODE_ENV: process.env.NODE_ENV,
+    BUILD_ENV: env.VITE_APP_ENV,
+  });
+
+  console.log('Vite Config - Critical Vars:', {
     VITE_OPENWEATHER_API_KEY: !!env.VITE_OPENWEATHER_API_KEY ? '[SET]' : '[NOT SET]',
-    NODE_ENV: env.NODE_ENV,
-    VITE_APP_ENV: env.VITE_APP_ENV
+    OPENWEATHER_API_KEY: !!env.OPENWEATHER_API_KEY ? '[SET]' : '[NOT SET]',
+    RAILWAY_OPENWEATHER_API_KEY: !!env.RAILWAY_OPENWEATHER_API_KEY ? '[SET]' : '[NOT SET]',
   });
 
   const isDev = mode === 'development';
+
+  // Ensure we're getting the API key from the right source
+  const weatherApiKey = env.VITE_OPENWEATHER_API_KEY || env.OPENWEATHER_API_KEY || env.RAILWAY_OPENWEATHER_API_KEY;
+  console.log('Weather API Key Status:', weatherApiKey ? 'Found a key to use' : 'No key available');
 
   return {
     plugins: [react()],
@@ -44,19 +54,22 @@ export default defineConfig(({ command, mode }) => {
     },
     server: {
       port: isDev ? 5173 : parseInt(env.PORT || '3000'),
-      host: true, // Listen on all addresses
+      host: true,
       watch: {
         usePolling: true,
       },
     },
     preview: {
       port: parseInt(env.PORT || '3000'),
-      host: true, // Listen on all addresses
+      host: true,
     },
     define: {
       __APP_ENV__: JSON.stringify(env.VITE_APP_ENV),
-      'import.meta.env.VITE_OPENWEATHER_API_KEY': JSON.stringify(env.VITE_OPENWEATHER_API_KEY),
+      // Try multiple possible sources for the API key
+      'import.meta.env.VITE_OPENWEATHER_API_KEY': JSON.stringify(weatherApiKey || ''),
       'import.meta.env.MODE': JSON.stringify(mode),
+      'import.meta.env.PROD': mode === 'production',
+      'import.meta.env.DEV': mode === 'development',
     },
   };
 });

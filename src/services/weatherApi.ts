@@ -21,18 +21,39 @@ const DEFAULT_WEATHER: GameWeather = {
 };
 
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
+  // Debug all environment variables in production
+  if (import.meta.env.PROD) {
+    console.log('Weather API Debug:', {
+      hasApiKey: !!API_KEY,
+      isProd: import.meta.env.PROD,
+      mode: import.meta.env.MODE,
+      venue
+    });
+  }
+
   // Log API key status (without exposing the key)
-  logFetch('Weather API', { status: API_KEY ? 'Present' : 'Missing' });
+  logFetch('Weather API', {
+    status: API_KEY ? 'Present' : 'Missing',
+    mode: import.meta.env.MODE,
+    isProd: import.meta.env.PROD
+  });
 
   // If no API key is configured, return default weather without making API call
   if (!API_KEY) {
-    logFetchError('Weather API', 'API key is not configured');
+    logFetchError('Weather API', {
+      error: 'API key is not configured',
+      mode: import.meta.env.MODE,
+      isProd: import.meta.env.PROD
+    });
     return DEFAULT_WEATHER;
   }
 
   try {
     const url = `${BASE_URL}/weather?q=${venue.city},${venue.state},US&units=imperial&appid=${API_KEY}`;
-    logFetch('Weather API', { location: `${venue.city}, ${venue.state}` });
+    logFetch('Weather API', {
+      location: `${venue.city}, ${venue.state}`,
+      mode: import.meta.env.MODE
+    });
 
     const response = await fetch(url);
 
