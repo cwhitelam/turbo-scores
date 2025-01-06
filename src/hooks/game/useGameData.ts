@@ -57,7 +57,7 @@ export function useGameData<T>(
         return () => {
             isMountedRef.current = false;
         };
-    }, []);
+    }, [gameId]);
 
     // Reset refs when gameId changes
     useEffect(() => {

@@ -18,7 +18,7 @@ export function SportTicker({ gameId, className = '', startTime, sport }: SportT
     const gameState = useGameState(gameId);
     const { stats = [], isComplete } = useGameData(
         gameId,
-        () => fetchAndProcessStats(gameId || ''),
+        () => fetchAndProcessStats(gameId || '', sport),
         { stats: [], timestamp: Date.now(), isComplete: false }
     );
 

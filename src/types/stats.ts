@@ -1,4 +1,23 @@
-export type StatType = 'PASS' | 'RUSH' | 'REC' | 'SACK' | 'TACKLE' | 'INT' | 'TFL' | 'QB_HIT' | 'BLOCK' | 'PD';
+export type StatType =
+  // NFL
+  | 'PASS'
+  | 'RUSH'
+  | 'REC'
+  | 'SACK'
+  | 'TACKLE'
+  | 'INT'
+  // NBA
+  | 'PTS'
+  | 'REB'
+  | 'AST'
+  // MLB
+  | 'AVG'
+  | 'HR'
+  | 'RBI'
+  // NHL
+  | 'GOAL'
+  | 'ASSIST'
+  | 'POINT';
 
 export interface PlayerStat {
   name: string;

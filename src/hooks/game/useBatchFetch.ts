@@ -1,65 +1,36 @@
 import { useCallback } from 'react';
-import { logFetchError } from '../../utils/loggingUtils';
 
-const BATCH_DELAY = 100; // 100ms delay for batching
-
-// Batch fetching system
-type BatchFetch = {
-    gameId: string;
-    fetchData: () => Promise<any>;
-    resolve: (value: any) => void;
-};
-
-let batchTimeout: NodeJS.Timeout | null = null;
-let batchedFetches: BatchFetch[] = [];
-
-async function processBatchedFetches() {
-    const fetches = [...batchedFetches];
-    batchedFetches = [];
-    batchTimeout = null;
-
-    // Group fetches by unique fetch functions (based on toString comparison)
-    const fetchGroups = new Map<string, BatchFetch[]>();
-    fetches.forEach(fetch => {
-        const key = fetch.fetchData.toString();
-        if (!fetchGroups.has(key)) {
-            fetchGroups.set(key, []);
-        }
-        fetchGroups.get(key)!.push(fetch);
-    });
-
-    // Process each group of fetches
-    for (const [_, groupFetches] of fetchGroups) {
-        try {
-            const firstFetch = groupFetches[0];
-            const result = await firstFetch.fetchData();
-
-            // Resolve all fetches in this group with the same result
-            groupFetches.forEach(fetch => {
-                fetch.resolve(result);
-            });
-        } catch (error) {
-            // If fetch fails, reject all fetches in this group
-            groupFetches.forEach(fetch => {
-                logFetchError(`Game data for ${fetch.gameId}`, error);
-                fetch.resolve(null);
-            });
-        }
-    }
-}
+// Global batch queue to optimize concurrent fetches
+const batchQueue = new Map<string, Promise<any>>();
+const BATCH_WINDOW = 50; // 50ms window to batch requests
 
 export function useBatchFetch() {
-    const batchFetch = useCallback(<T>(gameId: string, fetchData: () => Promise<T>): Promise<T> => {
-        return new Promise(resolve => {
-            batchedFetches.push({ gameId, fetchData, resolve });
+    return useCallback(async <T>(
+        gameId: string,
+        fetchData: () => Promise<T>
+    ): Promise<T> => {
+        // If there's already a fetch in the batch queue for this game, return that
+        const existingBatch = batchQueue.get(gameId);
+        if (existingBatch) {
+            return existingBatch;
+        }
 
-            if (batchTimeout) {
-                clearTimeout(batchTimeout);
-            }
-
-            batchTimeout = setTimeout(processBatchedFetches, BATCH_DELAY);
+        // Create a new batch promise
+        const batchPromise = new Promise<T>((resolve, reject) => {
+            setTimeout(async () => {
+                try {
+                    const data = await fetchData();
+                    resolve(data);
+                } catch (error) {
+                    reject(error);
+                } finally {
+                    batchQueue.delete(gameId);
+                }
+            }, BATCH_WINDOW);
         });
-    }, []);
 
-    return batchFetch;
+        // Store the batch promise
+        batchQueue.set(gameId, batchPromise);
+        return batchPromise;
+    }, []);
 } 

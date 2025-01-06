@@ -5,14 +5,20 @@ const statsCache = new Map<string, { stats: PlayerStat[]; timestamp: number; isC
 const CACHE_TTL = 30000; // 30 seconds
 const pendingFetches = new Map<string, Promise<{ stats: PlayerStat[]; timestamp: number; isComplete: boolean }>>();
 
+function getCacheKey(gameId: string): string {
+  return `game-${gameId}`;
+}
+
 export async function fetchAndProcessStats(gameId: string) {
   if (!gameId) {
     return { stats: [], timestamp: Date.now(), isComplete: false };
   }
 
   const now = Date.now();
-  const cached = statsCache.get(gameId);
+  const cacheKey = getCacheKey(gameId);
+  const cached = statsCache.get(cacheKey);
 
+  // Return cached data if it's still valid
   if (cached && now - cached.timestamp < CACHE_TTL) {
     return cached;
   }
@@ -77,7 +83,8 @@ export async function fetchAndProcessStats(gameId: string) {
         isComplete
       };
 
-      statsCache.set(gameId, result);
+      // Cache the result
+      statsCache.set(cacheKey, result);
       logFetchSuccess(endpoint, { statsCount: stats.length, isComplete });
       return result;
 
