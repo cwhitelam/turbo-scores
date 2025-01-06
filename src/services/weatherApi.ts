@@ -1,16 +1,6 @@
 import { GameWeather, VenueInfo } from '../types/game';
 import { logFetch, logFetchSuccess, logFetchError } from '../utils/loggingUtils';
 
-// Debug environment variables
-console.log('Weather API Config:', {
-  hasApiKey: !!import.meta.env.VITE_OPENWEATHER_API_KEY,
-  mode: import.meta.env.MODE,
-  isProd: import.meta.env.PROD
-});
-
-const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
-const BASE_URL = 'https://api.openweathermap.org/data/2.5';
-
 // Default weather values when API is not available
 const DEFAULT_WEATHER: GameWeather = {
   temp: 70,
@@ -19,37 +9,17 @@ const DEFAULT_WEATHER: GameWeather = {
 
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
   logFetch('Weather API', {
-    mode: import.meta.env.MODE,
-    isProd: import.meta.env.PROD,
     venue: `${venue.city}, ${venue.state}`
   });
 
   try {
     const url = `/api/weather?city=${encodeURIComponent(venue.city)}&state=${encodeURIComponent(venue.state)}`;
-    console.log('Fetching weather from:', url);
-
     const response = await fetch(url);
-    let data;
-
-    try {
-      data = await response.json();
-    } catch (parseError) {
-      console.error('Weather API Parse Error:', {
-        status: response.status,
-        text: await response.text(),
-        error: parseError
-      });
-      throw new Error('Failed to parse weather API response');
-    }
+    const data = await response.json();
 
     if (!response.ok) {
-      const error = {
-        status: response.status,
-        error: data.error || 'Unknown error',
-        venue: `${venue.city}, ${venue.state}`
-      };
-      console.error('Weather API Response Error:', error);
-      logFetchError('Weather API', error);
+      console.error('Weather API Error:', data);
+      logFetchError('Weather API', data);
       return DEFAULT_WEATHER;
     }
 
@@ -67,9 +37,7 @@ export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather>
     console.error('Weather API Error:', error);
     logFetchError('Weather API', {
       error,
-      venue: `${venue.city}, ${venue.state}`,
-      mode: import.meta.env.MODE,
-      isProd: import.meta.env.PROD
+      venue: `${venue.city}, ${venue.state}`
     });
     return DEFAULT_WEATHER;
   }

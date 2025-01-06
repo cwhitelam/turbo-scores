@@ -19,10 +19,15 @@ app.get('/api/weather', async (req, res) => {
         return res.status(500).json({ error: 'Weather API key not configured' });
     }
 
+    if (!city || !state) {
+        console.error('Weather API Error: Missing parameters', { city, state });
+        return res.status(400).json({ error: 'Missing city or state parameter' });
+    }
+
     try {
         const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)},${encodeURIComponent(state)},US&units=imperial&appid=${API_KEY}`;
         console.log('Fetching weather for:', { city, state });
-        
+
         const response = await fetch(url);
         const data = await response.json();
 
