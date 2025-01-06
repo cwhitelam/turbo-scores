@@ -7,15 +7,40 @@ const DEFAULT_WEATHER: GameWeather = {
   condition: 'Clear'
 };
 
+// Get the base URL for API calls
+const API_BASE_URL = import.meta.env.PROD ? 'https://turboscores.live' : '';
+
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
   logFetch('Weather API', {
     venue: `${venue.city}, ${venue.state}`
   });
 
   try {
-    const url = `/api/weather?city=${encodeURIComponent(venue.city)}&state=${encodeURIComponent(venue.state)}`;
-    const response = await fetch(url);
-    const data = await response.json();
+    const url = `${API_BASE_URL}/api/weather?city=${encodeURIComponent(venue.city)}&state=${encodeURIComponent(venue.state)}`;
+    console.log('Fetching weather from:', url);
+
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    // Try to read the response as text first
+    const text = await response.text();
+    let data;
+
+    try {
+      // Then parse it as JSON
+      data = JSON.parse(text);
+    } catch (error) {
+      console.error('Weather API Parse Error:', {
+        text,
+        error,
+        status: response.status
+      });
+      throw new Error('Invalid JSON response from weather API');
+    }
 
     if (!response.ok) {
       console.error('Weather API Error:', data);

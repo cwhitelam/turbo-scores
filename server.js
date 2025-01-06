@@ -9,10 +9,27 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Add middleware to parse JSON
+app.use(express.json());
+
+// Add CORS headers for API routes
+app.use('/api', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
 // Weather API proxy endpoint - MUST come before static file handling
 app.get('/api/weather', async (req, res) => {
     const { city, state } = req.query;
     const API_KEY = process.env.VITE_OPENWEATHER_API_KEY;
+
+    console.log('Weather API Request:', {
+        city,
+        state,
+        hasApiKey: !!API_KEY,
+        url: req.url
+    });
 
     if (!API_KEY) {
         console.error('Weather API Error: API key not configured on server');
