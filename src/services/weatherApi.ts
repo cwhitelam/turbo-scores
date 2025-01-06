@@ -12,6 +12,7 @@ const DEFAULT_WEATHER: GameWeather = {
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
   // If no API key is configured, return default weather without making API call
   if (!API_KEY) {
+    console.warn('OpenWeather API key is not configured. Weather data will not be fetched.');
     return DEFAULT_WEATHER;
   }
 
