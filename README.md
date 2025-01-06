@@ -9,9 +9,12 @@ A real-time sports scoreboard application.
 - Possession indicators for NFL games
 
 ## Deployment
-- Automated deployments via CRON schedule (4 AM UTC)
+- Automated deployments via CRON schedule (12:00 PM EST)
 - Production: [turboscores.live](https://turboscores.live)
 - Deployment triggers configured via watchPatterns
 - Documentation changes don't trigger deployments
 
-<!-- Third test push for CRON deployment --> 
+## Development
+- Branch-based development
+- Automated testing
+- Code quality checks 
