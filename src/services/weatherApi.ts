@@ -1,15 +1,12 @@
 import { GameWeather, VenueInfo } from '../types/game';
 import { logFetch, logFetchSuccess, logFetchError } from '../utils/loggingUtils';
 
-// Debug all environment variables in production
-if (import.meta.env.PROD) {
-  console.log('DEBUG: All Vite env variables:', {
-    VITE_OPENWEATHER_API_KEY: import.meta.env.VITE_OPENWEATHER_API_KEY,
-    MODE: import.meta.env.MODE,
-    PROD: import.meta.env.PROD,
-    DEV: import.meta.env.DEV,
-  });
-}
+// Debug environment variables
+console.log('Weather API Config:', {
+  hasApiKey: !!import.meta.env.VITE_OPENWEATHER_API_KEY,
+  mode: import.meta.env.MODE,
+  isProd: import.meta.env.PROD
+});
 
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
@@ -21,57 +18,67 @@ const DEFAULT_WEATHER: GameWeather = {
 };
 
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
-  // Debug all environment variables in production
-  if (import.meta.env.PROD) {
-    console.log('Weather API Debug:', {
-      hasApiKey: !!API_KEY,
-      isProd: import.meta.env.PROD,
-      mode: import.meta.env.MODE,
-      venue
-    });
-  }
-
   // Log API key status (without exposing the key)
   logFetch('Weather API', {
     status: API_KEY ? 'Present' : 'Missing',
     mode: import.meta.env.MODE,
-    isProd: import.meta.env.PROD
+    isProd: import.meta.env.PROD,
+    venue: `${venue.city}, ${venue.state}`
   });
 
   // If no API key is configured, return default weather without making API call
   if (!API_KEY) {
-    logFetchError('Weather API', {
+    const error = {
       error: 'API key is not configured',
       mode: import.meta.env.MODE,
-      isProd: import.meta.env.PROD
-    });
+      isProd: import.meta.env.PROD,
+      env: {
+        hasKey: !!import.meta.env.VITE_OPENWEATHER_API_KEY,
+        mode: import.meta.env.MODE
+      }
+    };
+    console.error('Weather API Error:', error);
+    logFetchError('Weather API', error);
     return DEFAULT_WEATHER;
   }
 
   try {
     const url = `${BASE_URL}/weather?q=${venue.city},${venue.state},US&units=imperial&appid=${API_KEY}`;
-    logFetch('Weather API', {
-      location: `${venue.city}, ${venue.state}`,
-      mode: import.meta.env.MODE
-    });
 
     const response = await fetch(url);
+    const responseText = await response.text();
 
     if (!response.ok) {
-      const errorText = await response.text();
-      logFetchError('Weather API', { status: response.status, error: errorText });
+      const error = {
+        status: response.status,
+        statusText: response.statusText,
+        response: responseText,
+        venue: `${venue.city}, ${venue.state}`
+      };
+      console.error('Weather API Response Error:', error);
+      logFetchError('Weather API', error);
       return DEFAULT_WEATHER;
     }
 
-    const data = await response.json();
-    logFetchSuccess('Weather API', { temp: data.main.temp, condition: data.weather[0].main });
+    const data = JSON.parse(responseText);
+    logFetchSuccess('Weather API', {
+      temp: data.main.temp,
+      condition: data.weather[0].main,
+      venue: `${venue.city}, ${venue.state}`
+    });
 
     return {
       temp: Math.round(data.main.temp),
       condition: formatFootballCondition(data.weather[0].main, data.wind.speed, data.snow?.['1h'], data.rain?.['1h'])
     };
   } catch (error) {
-    logFetchError('Weather API', error);
+    console.error('Weather API Error:', error);
+    logFetchError('Weather API', {
+      error,
+      venue: `${venue.city}, ${venue.state}`,
+      mode: import.meta.env.MODE,
+      isProd: import.meta.env.PROD
+    });
     return DEFAULT_WEATHER;
   }
 }

@@ -15,17 +15,15 @@ export default defineConfig(({ command, mode }) => {
     BUILD_ENV: env.VITE_APP_ENV,
   });
 
-  console.log('Vite Config - Critical Vars:', {
-    VITE_OPENWEATHER_API_KEY: !!env.VITE_OPENWEATHER_API_KEY ? '[SET]' : '[NOT SET]',
-    OPENWEATHER_API_KEY: !!env.OPENWEATHER_API_KEY ? '[SET]' : '[NOT SET]',
-    RAILWAY_OPENWEATHER_API_KEY: !!env.RAILWAY_OPENWEATHER_API_KEY ? '[SET]' : '[NOT SET]',
+  // Get the API key from Railway's environment variables during build
+  const apiKey = process.env.VITE_OPENWEATHER_API_KEY || env.VITE_OPENWEATHER_API_KEY;
+
+  console.log('Vite Config - API Key Status:', {
+    hasKey: !!apiKey,
+    source: process.env.VITE_OPENWEATHER_API_KEY ? 'Railway' : (env.VITE_OPENWEATHER_API_KEY ? 'Env File' : 'None')
   });
 
   const isDev = mode === 'development';
-
-  // Ensure we're getting the API key from the right source
-  const weatherApiKey = env.VITE_OPENWEATHER_API_KEY || env.OPENWEATHER_API_KEY || env.RAILWAY_OPENWEATHER_API_KEY;
-  console.log('Weather API Key Status:', weatherApiKey ? 'Found a key to use' : 'No key available');
 
   return {
     plugins: [react()],
@@ -64,9 +62,12 @@ export default defineConfig(({ command, mode }) => {
       host: true,
     },
     define: {
-      __APP_ENV__: JSON.stringify(env.VITE_APP_ENV),
-      // Try multiple possible sources for the API key
-      'import.meta.env.VITE_OPENWEATHER_API_KEY': JSON.stringify(weatherApiKey || ''),
+      // Replace process.env with a static object containing our env vars
+      'process.env': {
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV),
+      },
+      // Explicitly inject the API key into import.meta.env
+      'import.meta.env.VITE_OPENWEATHER_API_KEY': JSON.stringify(apiKey),
       'import.meta.env.MODE': JSON.stringify(mode),
       'import.meta.env.PROD': mode === 'production',
       'import.meta.env.DEV': mode === 'development',
