@@ -1,5 +1,7 @@
 import { GameWeather, VenueInfo } from '../types/game';
-import { logFetch, logFetchSuccess, logFetchError } from '../utils/loggingUtils';
+
+const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
+const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
 // Default weather values when API is not available
 const DEFAULT_WEATHER: GameWeather = {
@@ -7,52 +9,23 @@ const DEFAULT_WEATHER: GameWeather = {
   condition: 'Clear'
 };
 
-// Get the base URL for API calls
-const API_BASE_URL = import.meta.env.PROD ? 'https://turboscores.live' : '';
-
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
-  logFetch('Weather API', {
-    venue: `${venue.city}, ${venue.state}`
-  });
+  // If no API key is configured, return default weather without making API call
+  if (!API_KEY) {
+    console.warn('OpenWeather API key is not configured. Weather data will not be fetched.');
+    return DEFAULT_WEATHER;
+  }
 
   try {
-    const url = `${API_BASE_URL}/api/weather?city=${encodeURIComponent(venue.city)}&state=${encodeURIComponent(venue.state)}`;
-    console.log('Fetching weather from:', url);
-
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-
-    // Try to read the response as text first
-    const text = await response.text();
-    let data;
-
-    try {
-      // Then parse it as JSON
-      data = JSON.parse(text);
-    } catch (error) {
-      console.error('Weather API Parse Error:', {
-        text,
-        error,
-        status: response.status
-      });
-      throw new Error('Invalid JSON response from weather API');
-    }
+    const response = await fetch(
+      `${BASE_URL}/weather?q=${venue.city},${venue.state},US&units=imperial&appid=${API_KEY}`
+    );
 
     if (!response.ok) {
-      console.error('Weather API Error:', data);
-      logFetchError('Weather API', data);
       return DEFAULT_WEATHER;
     }
 
-    logFetchSuccess('Weather API', {
-      temp: data.main.temp,
-      condition: data.weather[0].main,
-      venue: `${venue.city}, ${venue.state}`
-    });
+    const data = await response.json();
 
     return {
       temp: Math.round(data.main.temp),
@@ -60,10 +33,6 @@ export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather>
     };
   } catch (error) {
     console.error('Weather API Error:', error);
-    logFetchError('Weather API', {
-      error,
-      venue: `${venue.city}, ${venue.state}`
-    });
     return DEFAULT_WEATHER;
   }
 }
