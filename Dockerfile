@@ -12,7 +12,26 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application with environment variables
+ARG VITE_OPENWEATHER_API_KEY
+ARG VITE_APP_ENV
+ARG VITE_APP_URL
+ARG VITE_API_BASE_URL
+ARG VITE_FEATURE_DEBUG_MODE
+
+ENV VITE_OPENWEATHER_API_KEY=$VITE_OPENWEATHER_API_KEY
+ENV VITE_APP_ENV=$VITE_APP_ENV
+ENV VITE_APP_URL=$VITE_APP_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_FEATURE_DEBUG_MODE=$VITE_FEATURE_DEBUG_MODE
+
+# Debug environment variables
+RUN echo "Build Environment Variables:" && \
+    echo "VITE_OPENWEATHER_API_KEY: ${VITE_OPENWEATHER_API_KEY}" && \
+    echo "VITE_APP_ENV: ${VITE_APP_ENV}" && \
+    echo "VITE_APP_URL: ${VITE_APP_URL}" && \
+    echo "VITE_API_BASE_URL: ${VITE_API_BASE_URL}"
+
 RUN npm run build
 
 # Production stage
