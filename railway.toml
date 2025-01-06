@@ -1,6 +1,7 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm run build"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+buildCommand = "docker build --build-arg VITE_OPENWEATHER_API_KEY=$VITE_OPENWEATHER_API_KEY --build-arg VITE_APP_ENV=$VITE_APP_ENV --build-arg VITE_APP_URL=$VITE_APP_URL --build-arg VITE_API_BASE_URL=$VITE_API_BASE_URL --build-arg VITE_FEATURE_DEBUG_MODE=$VITE_FEATURE_DEBUG_MODE -t app ."
 
 [deploy]
 startCommand = "node server.js"
