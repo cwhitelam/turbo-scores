@@ -11,4 +11,7 @@ restartPolicyMaxRetries = 3
 
 [deploy.envs]
 NODE_ENV = "production"
-PORT = "3000"  # Production port only 
+PORT = "3000"
+VITE_APP_ENV = "production"
+VITE_API_BASE_URL = "https://site.api.espn.com/apis"
+VITE_FEATURE_DEBUG_MODE = "false" 
