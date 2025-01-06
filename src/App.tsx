@@ -2,15 +2,16 @@ import React from 'react';
 import { Header } from './components/layout/Header';
 import { AutoScrollContainer } from './components/common/AutoScrollContainer';
 import { ScoreCard } from './components/common/ScoreCard';
-import { useSportsData } from './hooks/useSportsData';
+import { useSportsDataQuery } from './hooks/useSportsDataQuery';
 import { AutoScrollProvider } from './context/AutoScrollContext';
 import { GlobalGameProvider } from './context/GlobalGameContext';
 import { SportProvider } from './context/SportContext';
+import { QueryProvider } from './providers/QueryProvider';
 import { useSport } from './context/SportContext';
 
 function GameContainer() {
   const { currentSport } = useSport();
-  const { games, loading, error } = useSportsData(currentSport);
+  const { games, loading, error } = useSportsDataQuery(currentSport);
 
   if (loading) {
     return (
@@ -41,17 +42,19 @@ function GameContainer() {
 
 export default function App() {
   return (
-    <SportProvider>
-      <GlobalGameProvider>
-        <AutoScrollProvider>
-          <div className="min-h-screen bg-gray-900">
-            <Header />
-            <AutoScrollContainer speed={40}>
-              <GameContainer />
-            </AutoScrollContainer>
-          </div>
-        </AutoScrollProvider>
-      </GlobalGameProvider>
-    </SportProvider>
+    <QueryProvider>
+      <SportProvider>
+        <GlobalGameProvider>
+          <AutoScrollProvider>
+            <div className="min-h-screen bg-gray-900">
+              <Header />
+              <AutoScrollContainer speed={40}>
+                <GameContainer />
+              </AutoScrollContainer>
+            </div>
+          </AutoScrollProvider>
+        </GlobalGameProvider>
+      </SportProvider>
+    </QueryProvider>
   );
 }
