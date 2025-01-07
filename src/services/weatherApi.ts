@@ -1,13 +1,5 @@
 import { GameWeather, VenueInfo } from '../types/game';
 
-// Log environment info on module load
-console.log('Weather API Module Environment:', {
-  env: import.meta.env,
-  mode: import.meta.env.MODE,
-  prod: import.meta.env.PROD,
-  hasApiKey: !!import.meta.env.VITE_OPENWEATHER_API_KEY
-});
-
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
@@ -20,43 +12,30 @@ const DEFAULT_WEATHER: GameWeather = {
 export async function getWeatherForVenue(venue: VenueInfo): Promise<GameWeather> {
   // If no API key is configured, return default weather without making API call
   if (!API_KEY) {
-    console.warn('OpenWeather API key is not configured:', {
-      env: import.meta.env,
-      mode: import.meta.env.MODE,
-      prod: import.meta.env.PROD,
-      venue
-    });
     return DEFAULT_WEATHER;
   }
 
   try {
     const url = `${BASE_URL}/weather?q=${venue.city},${venue.state},US&units=imperial&appid=${API_KEY}`;
-    console.log('Fetching weather from:', url.replace(API_KEY, '[REDACTED]'));
-
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.error('Weather API Error:', {
-        status: response.status,
-        statusText: response.statusText,
-        venue
-      });
       return DEFAULT_WEATHER;
     }
 
     const data = await response.json();
-    console.log('Weather API Response:', {
-      temp: data.main.temp,
-      condition: data.weather[0].main,
-      venue: `${venue.city}, ${venue.state}`
-    });
-
-    return {
+    const weather: GameWeather = {
       temp: Math.round(data.main.temp),
-      condition: formatFootballCondition(data.weather[0].main, data.wind.speed, data.snow?.['1h'], data.rain?.['1h'])
+      condition: formatFootballCondition(
+        data.weather[0].main,
+        data.wind?.speed ?? 0,
+        data.snow?.['1h'] ?? 0,
+        data.rain?.['1h'] ?? 0
+      )
     };
+
+    return weather;
   } catch (error) {
-    console.error('Weather API Error:', error);
     return DEFAULT_WEATHER;
   }
 }
@@ -67,38 +46,36 @@ function formatFootballCondition(
   snowfall?: number,
   rainfall?: number
 ): string {
-  // Check for severe weather first
-  if (condition === 'Tornado' || condition === 'Hurricane') {
-    return 'Severe Weather';
-  }
+  // Convert to uppercase for consistent comparison
+  const upperCondition = condition.toUpperCase();
 
-  // Check precipitation
-  if (snowfall && snowfall > 0) {
-    return snowfall > 2 ? 'Heavy Snow' : 'Light Snow';
-  }
+  // Check for precipitation first
+  if (snowfall && snowfall > 0) return 'Snow';
+  if (rainfall && rainfall > 0) return 'Rain';
 
-  if (rainfall && rainfall > 0) {
-    return rainfall > 2.5 ? 'Heavy Rain' : 'Light Rain';
-  }
+  // Strong winds (over 15 mph) should be noted
+  if (windSpeed > 15) return 'Windy';
 
-  // Check wind conditions (speeds in mph)
-  if (windSpeed > 25) {
-    return 'High Winds';
+  // Map common conditions
+  switch (upperCondition) {
+    case 'THUNDERSTORM':
+      return 'Storm';
+    case 'DRIZZLE':
+      return 'Rain';
+    case 'RAIN':
+      return 'Rain';
+    case 'SNOW':
+      return 'Snow';
+    case 'MIST':
+    case 'SMOKE':
+    case 'HAZE':
+    case 'FOG':
+      return 'Hazy';
+    case 'CLOUDS':
+      return 'Overcast';
+    case 'CLEAR':
+      return 'Clear';
+    default:
+      return 'Clear';
   }
-  if (windSpeed > 15) {
-    return 'Windy';
-  }
-
-  // Map other conditions relevant to football
-  const footballConditions: { [key: string]: string } = {
-    'Thunderstorm': 'Storm',
-    'Drizzle': 'Light Rain',
-    'Rain': 'Rain',
-    'Snow': 'Snow',
-    'Fog': 'Foggy',
-    'Clear': 'Clear',
-    'Clouds': 'Overcast'
-  };
-
-  return footballConditions[condition] || 'Clear';
 }
