@@ -13,45 +13,41 @@ export async function getNBAScoreboard(): Promise<Game[]> {
     const now = new Date();
     const hour = now.getHours();
 
-    // Before noon (12 PM), always show yesterday's games
-    if (hour < 12) {
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      try {
-        const events = await fetchNBAGames(yesterday);
-        if (events.length > 0) {
-          const games = await Promise.all(events.map(transformNBAGameData));
-          return games;
-        }
-      } catch (error) {
-        console.error('Error fetching yesterday\'s games:', error);
-      }
-    }
-
-    // Between noon and 4 PM, show yesterday's games if any are still in progress
-    if (hour >= 12 && hour < 16) {
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      try {
-        const yesterdayEvents = await fetchNBAGames(yesterday);
-        if (yesterdayEvents.length > 0 && yesterdayEvents.some((event: { status?: { type?: { state?: string } } }) => event.status?.type?.state !== 'post')) {
-          const games = await Promise.all(yesterdayEvents.map(transformNBAGameData));
-          return games;
-        }
-      } catch (error) {
-        console.error('Error fetching yesterday\'s games:', error);
-      }
-    }
-
-    // Get today's games
+    // Get today's games first to check if there are any early games
+    let todayEvents;
     try {
-      const todayEvents = await fetchNBAGames(now);
-      if (todayEvents.length > 0) {
-        const games = await Promise.all(todayEvents.map(transformNBAGameData));
-        return games;
-      }
+      todayEvents = await fetchNBAGames(now);
     } catch (error) {
       console.error('Error fetching today\'s games:', error);
+      todayEvents = [];
+    }
+
+    // Before 5 PM, show yesterday's games unless there are games scheduled before 5 PM
+    if (hour < 17) {
+      const hasEarlyGames = todayEvents.some((event: any) => {
+        const gameTime = new Date(event.date);
+        return gameTime.getHours() < 17;
+      });
+
+      if (!hasEarlyGames) {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        try {
+          const yesterdayEvents = await fetchNBAGames(yesterday);
+          if (yesterdayEvents.length > 0) {
+            const games = await Promise.all(yesterdayEvents.map(transformNBAGameData));
+            return games;
+          }
+        } catch (error) {
+          console.error('Error fetching yesterday\'s games:', error);
+        }
+      }
+    }
+
+    // Show today's games if we have them
+    if (todayEvents.length > 0) {
+      const games = await Promise.all(todayEvents.map(transformNBAGameData));
+      return games;
     }
 
     // Only look for next day's games if it's late and we have no games today

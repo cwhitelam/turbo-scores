@@ -1,5 +1,4 @@
 import React from 'react';
-import { NBALeaderCategory } from '../types/gameStats';
 import { extractGameLeaders, formatLeaderDisplay } from '../utils/statsUtils';
 import { useNBAGameLeaders } from '../hooks/useNBAGameLeaders';
 

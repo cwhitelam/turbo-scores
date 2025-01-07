@@ -1,7 +1,7 @@
 import React from 'react';
 import { Timer } from 'lucide-react';
-import { useCountdown } from '../hooks/useCountdown';
-import { parseGameTime } from '../utils/dateUtils';
+import { useCountdown } from '../../hooks/useCountdown';
+import { parseGameTime } from '../../utils/dateUtils';
 
 interface GameCountdownProps {
   startTime: string;

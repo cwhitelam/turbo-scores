@@ -30,7 +30,7 @@ export function processNBAStats(data: any): PlayerStat[] {
     // Create a map of player stats from boxscore
     const boxScoreStats = new Map<string, string[]>();
     boxScore.players.forEach((teamStats: any) => {
-        const teamAbbrev = teamStats.team.abbreviation;
+        const teamAbbreviation = teamStats.team.abbreviation;
         teamStats.statistics[0]?.athletes?.forEach((athlete: any) => {
             if (athlete.athlete?.id && athlete.stats) {
                 boxScoreStats.set(athlete.athlete.id, athlete.stats);

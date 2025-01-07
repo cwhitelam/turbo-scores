@@ -1,7 +1,8 @@
 import React from 'react';
 import { NBAGameData } from '../types/game';
-import { useGameState } from '../../../shared/hooks/useGameState';
+import { useGameData } from '../../../../hooks/game/useGameData';
 import { formatNBAGameClock, formatNBAPeriod, getGamePhase } from '../utils/gameUtils';
+import { getTeamLogoUrl } from '../../../../utils/teamUtils';
 
 interface NBAScoreboardProps {
     gameId: string;
@@ -9,7 +10,7 @@ interface NBAScoreboardProps {
 }
 
 export function NBAScoreboard({ gameId, className = '' }: NBAScoreboardProps) {
-    const { data: game, isLoading, error } = useGameState<NBAGameData>(gameId);
+    const { data: game, isLoading, error } = useGameData<NBAGameData>(gameId);
 
     if (isLoading) {
         return <div className="animate-pulse h-32 bg-gray-200 rounded-lg"></div>;
@@ -66,7 +67,7 @@ export function NBAScoreboard({ gameId, className = '' }: NBAScoreboardProps) {
                 <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-3">
                         <img
-                            src={`https://a.espncdn.com/i/teamlogos/nba/500/${home.abbreviation.toLowerCase()}.png`}
+                            src={getTeamLogoUrl('nba', home.abbreviation)}
                             alt={home.name}
                             className="w-8 h-8"
                         />
@@ -84,7 +85,7 @@ export function NBAScoreboard({ gameId, className = '' }: NBAScoreboardProps) {
                 <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-3">
                         <img
-                            src={`https://a.espncdn.com/i/teamlogos/nba/500/${away.abbreviation.toLowerCase()}.png`}
+                            src={getTeamLogoUrl('nba', away.abbreviation)}
                             alt={away.name}
                             className="w-8 h-8"
                         />
