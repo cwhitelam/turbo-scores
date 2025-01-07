@@ -1,15 +1,75 @@
-import { GameTimeHandler, GameTimeState } from './types';
+import { GameTimeHandler, GameTimeState, GameStatus } from './types';
 
 export class NBATimeHandler implements GameTimeHandler {
     private readonly QUARTERS = ['1st', '2nd', '3rd', '4th'];
     private readonly FINAL_STATES = ['final', 'final/ot', 'final/2ot', 'final/3ot', 'final/4ot'];
     private readonly END_STATES = ['end of 1st', 'end of 2nd', 'end of 3rd', 'end of 4th'];
 
-    parseGameTime(timeString: string): GameTimeState {
-        if (!timeString) {
+    parseGameTime(timeString: string, gameStatus?: GameStatus): GameTimeState {
+        if (!timeString && !gameStatus) {
             return this.createDefaultState();
         }
 
+        // Handle ESPN API game status format
+        if (gameStatus) {
+            const { clock, displayClock, period, type } = gameStatus;
+
+            // Handle final state
+            if (type?.state === 'post' && type?.completed) {
+                return {
+                    isLive: false,
+                    displayTime: type.shortDetail,
+                    sortableTime: new Date(),
+                    isFinal: true,
+                    periodNumber: period,
+                    isOvertime: period > 4
+                };
+            }
+
+            // Handle halftime
+            if (period === 2 && displayClock === "0.0" && type?.state === 'in') {
+                return {
+                    isLive: true,
+                    displayTime: 'Halftime',
+                    sortableTime: new Date(),
+                    isHalftime: true,
+                    periodNumber: period
+                };
+            }
+
+            // Handle in-progress state
+            if (period && displayClock) {
+                const isOT = period > 4;
+                const isEndOfPeriod = displayClock === "0.0" && type?.state === 'in';
+                const periodDisplay = isOT ? `${period - 4}OT` : this.QUARTERS[period - 1];
+
+                // Show "End of X" when quarter concludes (except 4th quarter)
+                if (isEndOfPeriod && period < 4) {
+                    return {
+                        isLive: true,
+                        displayTime: `End of ${periodDisplay}`,
+                        sortableTime: new Date(),
+                        period: periodDisplay,
+                        periodNumber: period,
+                        isOvertime: isOT
+                    };
+                }
+
+                // Show regular time format
+                return {
+                    isLive: true,
+                    displayTime: isOT
+                        ? `${period - 4}OT • ${displayClock}`
+                        : `${periodDisplay} • ${displayClock}`,
+                    sortableTime: new Date(),
+                    period: periodDisplay,
+                    periodNumber: period,
+                    isOvertime: isOT
+                };
+            }
+        }
+
+        // Handle string-based time formats (fallback for legacy or different data sources)
         const lowerTimeString = timeString.toLowerCase();
 
         // Handle final states with multiple OT possibilities
@@ -38,17 +98,6 @@ export class NBATimeHandler implements GameTimeHandler {
                 periodNumber: quarterNum,
                 // Only mark as final if it's 4th quarter or later with 0.0 time and explicitly marked final
                 isFinal: false
-            };
-        }
-
-        // Handle Halftime
-        if (lowerTimeString === 'halftime') {
-            return {
-                isLive: true,
-                displayTime: 'Half',
-                sortableTime: new Date(),
-                isHalftime: true,
-                periodNumber: 2
             };
         }
 
