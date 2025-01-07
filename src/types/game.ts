@@ -21,16 +21,31 @@ export interface GameWeather {
 }
 
 export interface GamePlaySituation {
+  // NFL specific
   down?: number;
   distance?: number;
   yardLine?: number;
   possession?: string;
   possessionText?: string;
   downDistanceText?: string;
+
   // NHL specific
   powerPlay?: boolean;
   strength?: string;
   lastPlay?: string;
+
+  // NBA specific
+  shotClock?: number;
+  inBonus?: boolean;
+
+  // MLB specific
+  balls?: number;
+  strikes?: number;
+  outs?: number;
+  onFirst?: boolean;
+  onSecond?: boolean;
+  onThird?: boolean;
+  onBase?: boolean;
 }
 
 export interface Game {

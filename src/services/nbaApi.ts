@@ -13,13 +13,13 @@ export async function getNBAScoreboard(): Promise<Game[]> {
     const now = new Date();
     const hour = now.getHours();
 
-    // If it's before 4 PM, show yesterday's games
+    // If it's before 4 PM, check yesterday's games first
     if (hour < 16) {
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
       try {
         const events = await fetchNBAGames(yesterday);
-        if (events.length > 0) {
+        if (events.length > 0 && events.some(event => event.status?.type?.state !== 'post')) {
           const games = await Promise.all(events.map(transformNBAGameData));
           return games;
         }
@@ -28,10 +28,11 @@ export async function getNBAScoreboard(): Promise<Game[]> {
       }
     }
 
-    // After 4 PM or if no games yesterday, show today's games
+    // Get today's games
     try {
       const events = await fetchNBAGames(now);
       if (events.length > 0) {
+        // Always show today's games by default
         const games = await Promise.all(events.map(transformNBAGameData));
         return games;
       }
@@ -39,19 +40,21 @@ export async function getNBAScoreboard(): Promise<Game[]> {
       console.error('Error fetching today\'s games:', error);
     }
 
-    // If no games today, find the next game day
-    const nextGameDay = await findNextGameDay();
-    if (nextGameDay) {
-      try {
-        const events = await fetchNBAGames(nextGameDay);
-        const games = await Promise.all(events.map(transformNBAGameData));
-        return games.map(game => ({
-          ...game,
-          isUpcoming: true,
-          gameDate: formatDate(nextGameDay)
-        }));
-      } catch (error) {
-        console.error('Error fetching next game day:', error);
+    // Only look for next day's games if it's late and we have no games today
+    if (hour >= 23 && (!events || events.length === 0)) {
+      const nextGameDay = await findNextGameDay();
+      if (nextGameDay) {
+        try {
+          const events = await fetchNBAGames(nextGameDay);
+          const games = await Promise.all(events.map(transformNBAGameData));
+          return games.map(game => ({
+            ...game,
+            isUpcoming: true,
+            gameDate: formatDate(nextGameDay)
+          }));
+        } catch (error) {
+          console.error('Error fetching next game day:', error);
+        }
       }
     }
 
@@ -65,7 +68,7 @@ export async function getNBAScoreboard(): Promise<Game[]> {
 async function findNextGameDay(): Promise<Date | null> {
   const today = new Date();
   let searchDate = new Date(today);
-  
+
   for (let i = 1; i <= 7; i++) {
     searchDate.setDate(today.getDate() + i);
     try {
@@ -77,7 +80,7 @@ async function findNextGameDay(): Promise<Date | null> {
       console.error('Error searching for next game day:', error);
     }
   }
-  
+
   return null;
 }
 
