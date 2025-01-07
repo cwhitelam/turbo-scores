@@ -24,13 +24,35 @@ export function NBAScoreboard({ gameId, className = '' }: NBAScoreboardProps) {
     const period = formatNBAPeriod(game.status.period);
     const clock = formatNBAGameClock(game.status.clock);
 
+    // Debug logs
+    console.log('🏀 Game Status Debug:', {
+        gameId,
+        phase,
+        period,
+        clock,
+        rawStatus: game.status,
+        state: game.status.state,
+        type: game.status.type,
+        completed: game.status.type?.completed,
+    });
+
+    // Get display status
+    let displayStatus = '';
+    if (phase === 'pregame') {
+        displayStatus = 'Game starts soon';
+    } else if (phase === 'postgame') {
+        displayStatus = game.status.period > 4 ? `Final/${period}` : 'Final';
+    } else {
+        displayStatus = `${period} ${clock}`;
+    }
+
+    console.log('🏀 Display Status:', displayStatus);
+
     return (
         <div className={`bg-white rounded-lg shadow-lg p-4 ${className}`}>
             <div className="flex justify-between items-center mb-4">
                 <div className="text-sm font-semibold text-gray-600">
-                    {phase === 'pregame' ? 'Game starts soon' :
-                        phase === 'postgame' ? 'Final' :
-                            `${period} ${clock}`}
+                    {displayStatus}
                 </div>
                 {game.broadcast && (
                     <div className="text-sm text-gray-500">

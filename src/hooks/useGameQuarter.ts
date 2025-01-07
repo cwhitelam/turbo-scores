@@ -1,8 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSport } from '../context/SportContext';
+
+const SPORT_ENDPOINTS = {
+  NFL: 'football/nfl',
+  NBA: 'basketball/nba',
+  MLB: 'baseball/mlb',
+  NHL: 'hockey/nhl'
+} as const;
 
 export function useGameQuarter(gameId: string) {
   const [currentQuarter, setCurrentQuarter] = useState<string>('');
   const lastCheck = useRef<number>(0);
+  const { currentSport } = useSport();
   const MIN_CHECK_INTERVAL = 10000; // 10 seconds
   
   useEffect(() => {
@@ -13,7 +22,15 @@ export function useGameQuarter(gameId: string) {
       if (now - lastCheck.current < MIN_CHECK_INTERVAL) return;
       
       try {
-        const response = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${gameId}`);
+        const endpoint = SPORT_ENDPOINTS[currentSport];
+        if (!endpoint) {
+          console.error(`Unsupported sport: ${currentSport}`);
+          return;
+        }
+
+        const response = await fetch(
+          `https://site.api.espn.com/apis/site/v2/sports/${endpoint}/summary?event=${gameId}`
+        );
         const data = await response.json();
         
         const quarter = data?.header?.competitions?.[0]?.status?.period?.toString() || '';
@@ -30,7 +47,7 @@ export function useGameQuarter(gameId: string) {
     checkQuarter();
     
     return () => clearInterval(interval);
-  }, [gameId]);
+  }, [gameId, currentSport]);
 
   return currentQuarter;
 }

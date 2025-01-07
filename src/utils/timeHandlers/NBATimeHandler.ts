@@ -16,13 +16,18 @@ export class NBATimeHandler implements GameTimeHandler {
 
             // Handle final state
             if (type?.state === 'post' && type?.completed) {
+                const isOT = period > 4;
+                const otPeriod = period - 4;
+                const displayTime = isOT
+                    ? (otPeriod === 1 ? 'FINAL/OT' : `FINAL/${otPeriod}OT`)
+                    : 'FINAL';
                 return {
                     isLive: false,
-                    displayTime: type.shortDetail,
+                    displayTime,
                     sortableTime: new Date(),
                     isFinal: true,
                     periodNumber: period,
-                    isOvertime: period > 4
+                    isOvertime: isOT
                 };
             }
 
@@ -30,7 +35,7 @@ export class NBATimeHandler implements GameTimeHandler {
             if (period === 2 && displayClock === "0.0" && type?.state === 'in') {
                 return {
                     isLive: true,
-                    displayTime: 'Halftime',
+                    displayTime: 'HALF',
                     sortableTime: new Date(),
                     isHalftime: true,
                     periodNumber: period
@@ -41,13 +46,13 @@ export class NBATimeHandler implements GameTimeHandler {
             if (period && displayClock) {
                 const isOT = period > 4;
                 const isEndOfPeriod = displayClock === "0.0" && type?.state === 'in';
-                const periodDisplay = isOT ? `${period - 4}OT` : this.QUARTERS[period - 1];
+                const periodDisplay = isOT ? `${period - 4}OT` : `${period}Q`;
 
                 // Show "End of X" when quarter concludes (except 4th quarter)
                 if (isEndOfPeriod && period < 4) {
                     return {
                         isLive: true,
-                        displayTime: `End of ${periodDisplay}`,
+                        displayTime: `End of ${this.QUARTERS[period - 1]}`,
                         sortableTime: new Date(),
                         period: periodDisplay,
                         periodNumber: period,
@@ -55,12 +60,14 @@ export class NBATimeHandler implements GameTimeHandler {
                     };
                 }
 
-                // Show regular time format
+                // Show regular time format with bullet only for in-progress games
+                const displayTime = isEndOfPeriod && period === 4
+                    ? 'FINAL'
+                    : `${periodDisplay} • ${displayClock}`;
+
                 return {
                     isLive: true,
-                    displayTime: isOT
-                        ? `${period - 4}OT • ${displayClock}`
-                        : `${periodDisplay} • ${displayClock}`,
+                    displayTime,
                     sortableTime: new Date(),
                     period: periodDisplay,
                     periodNumber: period,
@@ -75,9 +82,12 @@ export class NBATimeHandler implements GameTimeHandler {
         // Handle final states with multiple OT possibilities
         if (this.FINAL_STATES.includes(lowerTimeString)) {
             const overtimePeriod = this.getOvertimePeriod(lowerTimeString);
+            const displayTime = overtimePeriod > 0
+                ? (overtimePeriod === 1 ? 'FINAL/OT' : `FINAL/${overtimePeriod}OT`)
+                : 'FINAL';
             return {
                 isLive: false,
-                displayTime: timeString,
+                displayTime,
                 sortableTime: new Date(),
                 isFinal: true,
                 isOvertime: overtimePeriod > 0,

@@ -1,7 +1,9 @@
-import { PlayerStat, StatType } from '../types/stats';
+import { PlayerStat } from '../types/stats';
 import { logFetch, logFetchSuccess, logFetchError } from './loggingUtils';
 import { SPORTS } from '../config/sports';
 import { Sport } from '../types/sport';
+import { processNBAStats } from '../features/sports/nba/utils/statsProcessor';
+import { processNFLStats } from '../features/sports/nfl/utils/statsProcessor';
 
 const statsCache = new Map<string, { stats: PlayerStat[]; timestamp: number; isComplete: boolean }>();
 const CACHE_TTL = 30000; // 30 seconds
@@ -52,36 +54,23 @@ export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL')
 
       // Validate required data structure
       if (!data?.leaders?.length) {
+        console.log('⚠️ No leaders data found in API response');
         return { stats: [], timestamp: now, isComplete: false };
       }
 
       const isComplete = data?.header?.competitions?.[0]?.status?.type?.state === 'post';
-      const stats: PlayerStat[] = [];
+      let stats: PlayerStat[] = [];
 
-      // Process each team's leaders
-      for (const teamLeaders of data.leaders) {
-        if (!teamLeaders?.team?.abbreviation) continue;
-
-        const teamId = teamLeaders.team.abbreviation;
-        const leaders = teamLeaders.leaders || [];
-
-        for (const category of leaders) {
-          if (!category?.leaders?.[0]) continue;
-
-          const leader = category.leaders[0];
-          if (!leader.athlete?.shortName || !leader.displayValue) continue;
-
-          const statInfo = parseStatValue(category.name, leader.displayValue);
-          if (!statInfo) continue;
-
-          stats.push({
-            name: leader.athlete.shortName,
-            team: teamId,
-            value: statInfo.value,
-            statType: statInfo.type,
-            displayValue: leader.displayValue
-          });
-        }
+      // Use sport-specific processors
+      switch (sport) {
+        case 'NBA':
+          stats = processNBAStats(data);
+          break;
+        case 'NFL':
+          stats = processNFLStats(data);
+          break;
+        default:
+          console.warn(`No stats processor for sport: ${sport}`);
       }
 
       const result = {
@@ -107,42 +96,4 @@ export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL')
   // Store the pending fetch
   pendingFetches.set(gameId, fetchPromise);
   return fetchPromise;
-}
-
-function parseStatValue(category: string, displayValue: string): { value: number; type: StatType } | null {
-  if (!displayValue) return null;
-
-  try {
-    switch (category) {
-      case 'passingYards': {
-        const match = displayValue.match(/(\d+)\/(\d+),\s*(\d+)\s*YDS/);
-        return match ? { value: parseInt(match[3]), type: 'PASS' } : null;
-      }
-      case 'rushingYards': {
-        const match = displayValue.match(/(\d+)\s*CAR,\s*(\d+)\s*YDS/);
-        return match ? { value: parseInt(match[2]), type: 'RUSH' } : null;
-      }
-      case 'receivingYards': {
-        const match = displayValue.match(/(\d+)\s*REC,\s*(\d+)\s*YDS/);
-        return match ? { value: parseInt(match[2]), type: 'REC' } : null;
-      }
-      case 'sacks': {
-        const match = displayValue.match(/([\d.]+)\s*SACKS?/);
-        return match ? { value: parseFloat(match[1]), type: 'SACK' } : null;
-      }
-      case 'totalTackles': {
-        const match = displayValue.match(/(\d+)\s*TCKL/);
-        return match ? { value: parseInt(match[1]), type: 'TACKLE' } : null;
-      }
-      case 'interceptions': {
-        const match = displayValue.match(/(\d+)\s*INT/);
-        return match ? { value: parseInt(match[1]), type: 'INT' } : null;
-      }
-      default:
-        return null;
-    }
-  } catch (error) {
-    logFetchError(`Stat parsing for ${category}`, { error, displayValue });
-    return null;
-  }
 }

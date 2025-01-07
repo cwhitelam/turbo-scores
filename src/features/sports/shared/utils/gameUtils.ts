@@ -14,15 +14,33 @@ export function formatPeriod(period: number, sport: SportType): string {
     const config = sportConfigs[sport];
     const periodName = config.periodName;
 
+    // Debug logs
+    console.log('🏀 Format Period Debug:', {
+        period,
+        sport,
+        config,
+        defaultPeriodCount: config.defaultPeriodCount,
+        hasQuarters: config.hasQuarters
+    });
+
+    // Handle final state
+    if (period === config.defaultPeriodCount && !config.hasQuarters) {
+        console.log('🏀 Returning FINAL state');
+        return 'FINAL';
+    }
+
     if (period <= config.defaultPeriodCount) {
         if (config.hasQuarters) {
+            console.log('🏀 Returning quarter format:', `Q${period}`);
             return `Q${period}`;
         }
+        console.log('🏀 Returning period format:', `${period}${periodName}`);
         return `${period}${periodName}`;
     }
 
     // Overtime periods
     const otPeriod = period - config.defaultPeriodCount;
+    console.log('🏀 Returning overtime format:', `${otPeriod}OT`);
     return `${otPeriod}OT`;
 }
 

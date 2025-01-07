@@ -7,6 +7,22 @@ interface StatItemProps {
 }
 
 export function StatItem({ stat }: StatItemProps) {
+    // Special handling for NBA grouped stats
+    if (stat.displayValue.includes('PTS, ')) {
+        return (
+            <div className={styles.tickerItem}>
+                <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                        <span className="text-white font-bold">{stat.name}</span>
+                        <span className="text-gray-400">{stat.team}</span>
+                    </div>
+                    <div className="text-white font-medium">{stat.displayValue}</div>
+                </div>
+            </div>
+        );
+    }
+
+    // Original format for NFL and other sports
     return (
         <div className={styles.tickerItem}>
             {stat.value > 0 ? (

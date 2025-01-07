@@ -2,10 +2,10 @@ import { isPlayoffWeek } from './seasonUtils';
 
 // Date parsing and formatting
 export function parseGameTime(timeString: string): Date {
-  // Handle final game states
+  // Handle final game states including multiple overtimes
   if (!timeString ||
     timeString.toLowerCase() === 'final' ||
-    timeString.toLowerCase() === 'final/ot' ||
+    timeString.toLowerCase().startsWith('final/') || // Handles Final/OT, Final/2OT, etc.
     timeString.toLowerCase() === 'halftime') {
     return new Date();
   }
@@ -52,34 +52,39 @@ export function parseGameTime(timeString: string): Date {
       return new Date(year, month - 1, day, hour24, minutes, 0);
     }
 
-    // Handle legacy format "1:00 PM ET"
-    const [time, period] = timeString.split(' ');
-    const [hours, minutes] = time.split(':').map(Number);
+    // Handle time format "1:00 PM ET"
+    if (timeString.includes(':') && (timeString.includes('AM') || timeString.includes('PM'))) {
+      const [time, period] = timeString.split(' ');
+      const [hours, minutes] = time.split(':').map(Number);
 
-    if (isNaN(hours) || isNaN(minutes)) {
-      throw new Error(`Invalid time format: ${timeString}`);
+      if (isNaN(hours) || isNaN(minutes)) {
+        throw new Error(`Invalid time format: ${timeString}`);
+      }
+
+      let hour24 = hours;
+      if (period.startsWith('PM') && hours !== 12) hour24 += 12;
+      if (period.startsWith('AM') && hours === 12) hour24 = 0;
+
+      const now = new Date();
+      const gameDate = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        hour24,
+        minutes,
+        0
+      );
+
+      // If the time has already passed today, assume it's for tomorrow
+      if (gameDate < now) {
+        gameDate.setDate(gameDate.getDate() + 1);
+      }
+
+      return gameDate;
     }
 
-    let hour24 = hours;
-    if (period.startsWith('PM') && hours !== 12) hour24 += 12;
-    if (period.startsWith('AM') && hours === 12) hour24 = 0;
-
-    const now = new Date();
-    const gameDate = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      hour24,
-      minutes,
-      0
-    );
-
-    // If the time has already passed today, assume it's for tomorrow
-    if (gameDate < now) {
-      gameDate.setDate(gameDate.getDate() + 1);
-    }
-
-    return gameDate;
+    // If we can't parse the time, return current time
+    return new Date();
   } catch (error) {
     console.error('Error parsing game time:', { timeString, error });
     return new Date();

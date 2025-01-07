@@ -80,3 +80,32 @@ export interface TimeSlate {
   name: string;
   games: Game[];
 }
+
+export interface StatLeader {
+  name: string;
+  stat: string;
+  detail?: string;
+  team: string;
+  headshot?: string;
+}
+
+export interface GameStats {
+  // NFL Leaders
+  passer?: StatLeader;
+  rusher?: StatLeader;
+  receiver?: StatLeader;
+
+  // NBA Leaders
+  scorer?: StatLeader;
+  rebounder?: StatLeader;
+  assister?: StatLeader;
+
+  // MLB Leaders (TODO)
+  pitcher?: StatLeader;
+  batter?: StatLeader;
+
+  // NHL Leaders (TODO)
+  goalScorer?: StatLeader;
+  assists?: StatLeader;
+  goalie?: StatLeader;
+}

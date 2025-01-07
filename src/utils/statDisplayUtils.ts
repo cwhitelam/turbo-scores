@@ -33,7 +33,13 @@ export function getStatTypeDisplay(statType: StatType): string {
       return 'DEFENSE';
     case 'BLOCK':
       return 'O-LINE';
+    case 'PTS':
+      return 'PTS';
+    case 'REB':
+      return 'REB';
+    case 'AST':
+      return 'AST';
     default:
-      return 'DEFENSE';
+      return statType;
   }
 }

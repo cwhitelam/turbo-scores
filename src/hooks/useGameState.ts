@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react';
+import { useSport } from '../context/SportContext';
 
 export type GameState = 'pregame' | 'active' | 'halftime' | 'complete';
+
+const SPORT_ENDPOINTS = {
+  NFL: 'football/nfl',
+  NBA: 'basketball/nba',
+  MLB: 'baseball/mlb',
+  NHL: 'hockey/nhl'
+} as const;
 
 export function useGameState(gameId?: string) {
   const [gameState, setGameState] = useState<GameState>('pregame');
   const [lastUpdate, setLastUpdate] = useState<number>(0);
+  const { currentSport } = useSport();
   const MIN_CHECK_INTERVAL = 10000; // 10 seconds
 
   useEffect(() => {
@@ -15,11 +24,17 @@ export function useGameState(gameId?: string) {
       if (now - lastUpdate < MIN_CHECK_INTERVAL) return;
 
       try {
+        const endpoint = SPORT_ENDPOINTS[currentSport];
+        if (!endpoint) {
+          console.error(`Unsupported sport: ${currentSport}`);
+          return;
+        }
+
         const response = await fetch(
-          `https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=${gameId}`
+          `https://site.api.espn.com/apis/site/v2/sports/${endpoint}/summary?event=${gameId}`
         );
         const data = await response.json();
-        
+
         const status = data?.header?.competitions?.[0]?.status;
         const state = status?.type?.state;
         const period = status?.period || 0;
@@ -44,9 +59,9 @@ export function useGameState(gameId?: string) {
 
     checkGameState();
     const interval = setInterval(checkGameState, MIN_CHECK_INTERVAL);
-    
+
     return () => clearInterval(interval);
-  }, [gameId]);
+  }, [gameId, currentSport, lastUpdate]);
 
   return gameState;
 }
