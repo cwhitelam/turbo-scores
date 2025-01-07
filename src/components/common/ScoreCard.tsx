@@ -1,3 +1,4 @@
+import React from 'react';
 import { Game, TeamInfo } from '../../types/game';
 import { TeamDisplay } from '././TeamDisplay';
 import { GameHeader } from '././GameHeader';
@@ -12,17 +13,8 @@ const DEFAULT_COLORS = {
     secondary: 'rgb(209, 213, 219)'
 };
 
-export function ScoreCard({
-    id,
-    homeTeam,
-    awayTeam,
-    venue,
-    weather,
-    quarter,
-    timeLeft,
-    startTime,
-    situation
-}: Game) {
+// Wrap the component with React.memo to prevent unnecessary re-renders
+export const ScoreCard = React.memo(function ScoreCard(props: Game) {
     const { currentSport } = useSport();
 
     const getTeamColors = () => {
@@ -49,36 +41,36 @@ export function ScoreCard({
         winProbability: team.winProbability
     });
 
-    const homeTeamInfo = convertToTeamInfo(homeTeam);
-    const awayTeamInfo = convertToTeamInfo(awayTeam);
+    const homeTeamInfo = convertToTeamInfo(props.homeTeam);
+    const awayTeamInfo = convertToTeamInfo(props.awayTeam);
 
     const teamColors = getTeamColors();
-    const awayColors = teamColors[awayTeam.abbreviation] || DEFAULT_COLORS;
-    const homeColors = teamColors[homeTeam.abbreviation] || DEFAULT_COLORS;
+    const awayColors = teamColors[props.awayTeam.abbreviation] || DEFAULT_COLORS;
+    const homeColors = teamColors[props.homeTeam.abbreviation] || DEFAULT_COLORS;
 
     // Determine if possession should be shown based on game state
     const shouldShowPossession = currentSport === 'NFL' &&
-        quarter !== 'Final' &&
-        quarter !== '0Q' &&
-        quarter !== 'Half' &&
-        quarter !== 'Delayed' &&
-        !quarter?.startsWith('F');
+        props.quarter !== 'Final' &&
+        props.quarter !== '0Q' &&
+        props.quarter !== 'Half' &&
+        props.quarter !== 'Delayed' &&
+        !props.quarter?.startsWith('F');
 
     return (
         <GameContextProvider
-            quarter={quarter}
-            timeLeft={timeLeft}
+            quarter={props.quarter}
+            timeLeft={props.timeLeft}
             homeTeam={homeTeamInfo}
             awayTeam={awayTeamInfo}
         >
             <div className="rounded-xl overflow-hidden shadow-lg bg-gray-800/50 backdrop-blur-sm border border-white/10">
                 <GameHeader
-                    quarter={quarter}
-                    timeLeft={timeLeft}
-                    startTime={startTime}
-                    situation={situation}
-                    awayTeam={awayTeam.abbreviation}
-                    homeTeam={homeTeam.abbreviation}
+                    quarter={props.quarter}
+                    timeLeft={props.timeLeft}
+                    startTime={props.startTime}
+                    situation={props.situation}
+                    awayTeam={props.awayTeam.abbreviation}
+                    homeTeam={props.homeTeam.abbreviation}
                 />
                 <div className="flex-col">
                     <div className="flex">
@@ -92,10 +84,10 @@ export function ScoreCard({
                             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
                             <TeamDisplay
                                 team={awayTeamInfo}
-                                gameId={id}
-                                hasPossession={shouldShowPossession && situation?.possession === awayTeam.abbreviation}
+                                gameId={props.id}
+                                hasPossession={shouldShowPossession && props.situation?.possession === props.awayTeam.abbreviation}
                                 isHomeTeam={false}
-                                quarter={quarter}
+                                quarter={props.quarter}
                             />
                         </div>
                         <div
@@ -108,25 +100,25 @@ export function ScoreCard({
                             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
                             <TeamDisplay
                                 team={homeTeamInfo}
-                                gameId={id}
-                                hasPossession={shouldShowPossession && situation?.possession === homeTeam.abbreviation}
+                                gameId={props.id}
+                                hasPossession={shouldShowPossession && props.situation?.possession === props.homeTeam.abbreviation}
                                 isHomeTeam={true}
-                                quarter={quarter}
+                                quarter={props.quarter}
                             />
                         </div>
                     </div>
                     <StatsTicker
-                        gameId={id}
+                        gameId={props.id}
                         className="w-full"
                         sport={currentSport}
-                        startTime={startTime}
+                        startTime={props.startTime}
                     />
                 </div>
                 <GameFooter
-                    venue={venue}
-                    weather={weather}
+                    venue={props.venue}
+                    weather={props.weather}
                 />
             </div>
         </GameContextProvider>
     );
-} 
+}); 

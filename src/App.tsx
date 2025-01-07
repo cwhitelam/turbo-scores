@@ -9,7 +9,7 @@ import { SportProvider } from './context/SportContext';
 import { QueryProvider } from './providers/QueryProvider';
 import { useSport } from './context/SportContext';
 
-function GameContainer() {
+const GameContainer = React.memo(function GameContainer() {
   const { currentSport } = useSport();
   const { games, loading, error } = useSportsDataQuery(currentSport);
 
@@ -30,7 +30,7 @@ function GameContainer() {
   }
 
   return (
-    <div className="pt-32 pb-4 px-4 max-w-7xl mx-auto">
+    <div className="pt-32 pb-4 px-4 max-w-7xl mx-auto relative">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {games.map((game) => (
           <ScoreCard key={game.id} {...game} />
@@ -38,7 +38,7 @@ function GameContainer() {
       </div>
     </div>
   );
-}
+});
 
 export default function App() {
   return (
@@ -48,7 +48,7 @@ export default function App() {
           <AutoScrollProvider>
             <div className="min-h-screen bg-gray-900">
               <Header />
-              <AutoScrollContainer speed={40}>
+              <AutoScrollContainer>
                 <GameContainer />
               </AutoScrollContainer>
             </div>
