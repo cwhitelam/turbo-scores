@@ -5,7 +5,8 @@ export function parseGameTime(timeString: string): Date {
   // Handle final game states
   if (!timeString ||
     timeString.toLowerCase() === 'final' ||
-    timeString.toLowerCase() === 'final/ot') {
+    timeString.toLowerCase() === 'final/ot' ||
+    timeString.toLowerCase() === 'halftime') {
     return new Date();
   }
 
