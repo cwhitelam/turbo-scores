@@ -1,54 +1,60 @@
 import React from 'react';
 import { NBALeaderCategory } from '../types/gameStats';
 import { extractGameLeaders, formatLeaderDisplay } from '../utils/statsUtils';
+import { useNBAGameLeaders } from '../hooks/useNBAGameLeaders';
 
 interface GameLeadersProps {
-    leaders: NBALeaderCategory[];
+    gameId: string;
 }
 
-export const GameLeaders: React.FC<GameLeadersProps> = ({ leaders }) => {
-    const gameLeaders = extractGameLeaders(leaders);
+export const GameLeaders: React.FC<GameLeadersProps> = ({ gameId }) => {
+    const { leaders, boxScore, loading, error } = useNBAGameLeaders(gameId);
+
+    if (loading) {
+        return (
+            <div className="mt-4 space-y-3">
+                <div className="animate-pulse h-10 bg-gray-200 rounded"></div>
+                <div className="animate-pulse h-10 bg-gray-200 rounded"></div>
+                <div className="animate-pulse h-10 bg-gray-200 rounded"></div>
+            </div>
+        );
+    }
+
+    if (error || !leaders || leaders.length === 0) {
+        return (
+            <div className="mt-4 text-center text-gray-500">
+                Stats coming soon...
+            </div>
+        );
+    }
+
+    const gameLeaders = extractGameLeaders(leaders, boxScore);
+
+    const renderLeader = (leader: any, statType: string) => {
+        if (!leader) return null;
+
+        return (
+            <div className="flex items-center">
+                {leader.athlete.headshot && (
+                    <img
+                        src={leader.athlete.headshot.href}
+                        alt={leader.athlete.fullName}
+                        className="w-10 h-10 rounded-full mr-3"
+                    />
+                )}
+                <div className="flex flex-col">
+                    <span className="text-sm font-semibold">{leader.athlete.shortName}</span>
+                    <span className="text-xs text-gray-600">{formatLeaderDisplay(leader, statType)}</span>
+                </div>
+            </div>
+        );
+    };
 
     return (
-        <div className="mt-4 space-y-2 text-sm">
-            {gameLeaders.points && (
-                <div className="flex items-center space-x-2">
-                    {gameLeaders.points.athlete.headshot && (
-                        <img
-                            src={gameLeaders.points.athlete.headshot}
-                            alt={gameLeaders.points.athlete.fullName}
-                            className="w-8 h-8 rounded-full"
-                        />
-                    )}
-                    <span>{formatLeaderDisplay(gameLeaders.points, 'PTS')}</span>
-                </div>
-            )}
-
-            {gameLeaders.rebounds && (
-                <div className="flex items-center space-x-2">
-                    {gameLeaders.rebounds.athlete.headshot && (
-                        <img
-                            src={gameLeaders.rebounds.athlete.headshot}
-                            alt={gameLeaders.rebounds.athlete.fullName}
-                            className="w-8 h-8 rounded-full"
-                        />
-                    )}
-                    <span>{formatLeaderDisplay(gameLeaders.rebounds, 'REB')}</span>
-                </div>
-            )}
-
-            {gameLeaders.assists && (
-                <div className="flex items-center space-x-2">
-                    {gameLeaders.assists.athlete.headshot && (
-                        <img
-                            src={gameLeaders.assists.athlete.headshot}
-                            alt={gameLeaders.assists.athlete.fullName}
-                            className="w-8 h-8 rounded-full"
-                        />
-                    )}
-                    <span>{formatLeaderDisplay(gameLeaders.assists, 'AST')}</span>
-                </div>
-            )}
+        <div className="mt-4 space-y-3">
+            {renderLeader(gameLeaders.points, 'PTS')}
+            {renderLeader(gameLeaders.rebounds, 'REB')}
+            {renderLeader(gameLeaders.assists, 'AST')}
         </div>
     );
 }; 

@@ -20,16 +20,6 @@ export async function transformNBAGameData(event: any): Promise<Game> {
     const status = event.status;
     const situation = competition.situation;
 
-    // Debug log
-    console.log('🏀 Raw game status:', {
-      status,
-      type: status?.type,
-      state: status?.type?.state,
-      completed: status?.type?.completed,
-      period: status?.period,
-      clock: status?.displayClock
-    });
-
     // Determine game status
     let quarter = getNBAQuarter(status?.period);
     let timeLeft = status?.displayClock || '';
