@@ -66,7 +66,7 @@ export function NBAScoreboard({ gameId, className = '' }: NBAScoreboardProps) {
                 <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-3">
                         <img
-                            src={`/teams/nba/${home.abbreviation.toLowerCase()}.svg`}
+                            src={`https://a.espncdn.com/i/teamlogos/nba/500/${home.abbreviation.toLowerCase()}.png`}
                             alt={home.name}
                             className="w-8 h-8"
                         />
@@ -84,7 +84,7 @@ export function NBAScoreboard({ gameId, className = '' }: NBAScoreboardProps) {
                 <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-3">
                         <img
-                            src={`/teams/nba/${away.abbreviation.toLowerCase()}.svg`}
+                            src={`https://a.espncdn.com/i/teamlogos/nba/500/${away.abbreviation.toLowerCase()}.png`}
                             alt={away.name}
                             className="w-8 h-8"
                         />
