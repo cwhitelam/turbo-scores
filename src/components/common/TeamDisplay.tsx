@@ -2,6 +2,7 @@ import { TeamInfo } from '../../types/game';
 import { WinProbability } from './WinProbability';
 import { useSport } from '../../context/SportContext';
 import { Dot } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface TeamDisplayProps {
     team: TeamInfo;
@@ -15,6 +16,19 @@ export function TeamDisplay({ team, gameId, hasPossession, isHomeTeam, quarter }
     const { currentSport } = useSport();
     const sport = currentSport.toLowerCase();
     const isGameOver = quarter?.startsWith('F') || quarter === 'Final';
+    const [prevScore, setPrevScore] = useState(team.score);
+    const [isScoreIncreased, setIsScoreIncreased] = useState(false);
+
+    useEffect(() => {
+        if (team.score !== prevScore && prevScore !== undefined && team.score !== undefined) {
+            setIsScoreIncreased(team.score > prevScore);
+            const timer = setTimeout(() => {
+                setIsScoreIncreased(false);
+            }, 1000); // Match the UPDATE_DEBOUNCE from useSportsDataQuery
+            return () => clearTimeout(timer);
+        }
+        setPrevScore(team.score);
+    }, [team.score, prevScore]);
 
     return (
         <div
@@ -40,10 +54,13 @@ export function TeamDisplay({ team, gameId, hasPossession, isHomeTeam, quarter }
                     </div>
                 )}
                 <div
-                    className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 text-white"
-                    aria-label={`Score: ${team.score}`}
+                    className={`text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 transition-all duration-1000 ${isScoreIncreased
+                        ? 'text-green-400 scale-125'
+                        : 'text-white scale-100'
+                        }`}
+                    aria-label={team.score !== undefined ? `Score: ${team.score}` : 'Game not started'}
                 >
-                    {team.score}
+                    {team.score !== undefined ? team.score : '-'}
                 </div>
             </div>
             <WinProbability
@@ -53,4 +70,4 @@ export function TeamDisplay({ team, gameId, hasPossession, isHomeTeam, quarter }
             />
         </div>
     );
-} 
+}
