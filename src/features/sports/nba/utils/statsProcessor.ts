@@ -13,13 +13,6 @@ export function processNBAStats(data: any): PlayerStat[] {
     const stats: PlayerStat[] = [];
     const playerStats = new Map<string, NBAPlayerStats>();
 
-    // Check if the game is completed
-    const isCompleted = data.header?.competitions?.[0]?.status?.type?.state === 'post';
-    if (!isCompleted) {
-        console.log('Game is not completed yet');
-        return [];
-    }
-
     // Get the boxscore data
     const boxScore = data.boxscore;
     if (!boxScore?.players) {
@@ -94,17 +87,16 @@ export function processNBAStats(data: any): PlayerStat[] {
 
     // Convert grouped stats into combined stats
     for (const [_, playerStat] of playerStats) {
-        if (playerStat.pts > 0 || playerStat.reb > 0 || playerStat.ast > 0) {
-            const statLine = `${playerStat.pts} PTS, ${playerStat.reb} REB, ${playerStat.ast} AST`;
-            stats.push({
-                name: playerStat.name,
-                team: playerStat.team,
-                value: playerStat.pts,
-                statType: 'PTS',
-                displayValue: statLine
-            });
-        }
+        // Always show points with rebounds and assists
+        stats.push({
+            name: playerStat.name,
+            team: playerStat.team,
+            value: playerStat.pts,  // Use points as the main value for sorting
+            statType: 'PTS',
+            displayValue: `${playerStat.pts} PTS, ${playerStat.reb} REB, ${playerStat.ast} AST`
+        });
     }
 
-    return stats;
+    // Sort by points descending
+    return stats.sort((a, b) => b.value - a.value);
 } 
