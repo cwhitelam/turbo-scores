@@ -34,13 +34,6 @@ export const GameLeaders: React.FC<GameLeadersProps> = ({ gameId }) => {
 
         return (
             <div className="flex items-center">
-                {leader.athlete.headshot && (
-                    <img
-                        src={leader.athlete.headshot.href}
-                        alt={leader.athlete.fullName}
-                        className="w-10 h-10 rounded-full mr-3"
-                    />
-                )}
                 <div className="flex flex-col">
                     <span className="text-sm font-semibold">{leader.athlete.shortName}</span>
                     <span className="text-xs text-gray-600">{formatLeaderDisplay(leader, statType)}</span>

@@ -43,11 +43,6 @@ export function isClutchTime(game: GameData): boolean {
     return isLastPeriod && isLastFiveMinutes && scoreDiff <= 10;
 }
 
-export function getBonusStatus(situation: GameSituation): 'bonus' | 'double bonus' | null {
-    // Implementation would depend on your data structure
-    return null;
-}
-
 export function getScoringSummary(game: GameData): string {
     const { home, away } = game.teams;
     return `${away.abbreviation} ${away.score} - ${home.score} ${home.abbreviation}`;

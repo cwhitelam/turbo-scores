@@ -1,5 +1,4 @@
 import { TeamInfo } from '../../types/game';
-import { WinProbability } from './WinProbability';
 import { useSport } from '../../context/SportContext';
 import { Dot } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -63,11 +62,6 @@ export function TeamDisplay({ team, gameId, hasPossession, isHomeTeam, quarter }
                     {team.score !== undefined ? team.score : '-'}
                 </div>
             </div>
-            <WinProbability
-                gameId={gameId}
-                teamId={team.id}
-                className="text-xs sm:text-base rounded-full px-3 py-1 sm:px-4 sm:py-1.5 inline-block font-medium bg-black/20"
-            />
         </div>
     );
 }

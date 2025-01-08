@@ -40,10 +40,6 @@
     will-change: transform;
 }
 
-.tickerTrack:hover {
-    animation-play-state: paused;
-}
-
 .tickerItem {
     display: inline-flex;
     align-items: center;

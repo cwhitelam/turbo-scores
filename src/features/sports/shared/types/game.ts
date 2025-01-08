@@ -49,10 +49,6 @@ export interface GameData {
         city: string;
         state: string;
     };
-    broadcast?: {
-        network: string;
-        channel: string;
-    };
     weather?: {
         condition: string;
         temperature: number;

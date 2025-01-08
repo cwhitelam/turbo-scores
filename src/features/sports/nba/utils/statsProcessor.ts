@@ -16,7 +16,6 @@ export function processNBAStats(data: any): PlayerStat[] {
     // Get the boxscore data
     const boxScore = data.boxscore;
     if (!boxScore?.players) {
-        console.log('No boxscore data available');
         return [];
     }
 

@@ -37,8 +37,7 @@ export const ScoreCard = React.memo(function ScoreCard(props: Game) {
         name: team.name,
         abbreviation: team.abbreviation,
         score: team.score,
-        record: team.record,
-        winProbability: team.winProbability
+        record: team.record
     });
 
     const homeTeamInfo = convertToTeamInfo(props.homeTeam);

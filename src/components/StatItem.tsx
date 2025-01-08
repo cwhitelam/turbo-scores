@@ -1,4 +1,3 @@
-import React from 'react';
 import { PlayerStat } from '../types/stats';
 import styles from './StatsTicker.module.css';
 import { getStatTypeColor, getStatTypeDisplay } from '../utils/statDisplayUtils';

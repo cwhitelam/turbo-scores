@@ -17,8 +17,6 @@ export function GameHeader({
     timeLeft,
     startTime,
     situation,
-    awayTeam,
-    homeTeam,
 }: GameHeaderProps) {
     const { currentSport } = useSport();
     const hasStarted = quarter !== '0Q';
@@ -36,38 +34,6 @@ export function GameHeader({
                             {' at '}
                             {getYardLine(situation.yardLine)}
                         </span>
-                    </div>
-                );
-            case 'NBA':
-                return (
-                    <div className="text-white/90 text-xs">
-                        {situation.possession && (
-                            <span>
-                                {situation.possession === awayTeam ? awayTeam : homeTeam} Ball
-                                {situation.shotClock && ` • ${situation.shotClock}s`}
-                                {situation.inBonus && ' • Bonus'}
-                            </span>
-                        )}
-                    </div>
-                );
-            case 'MLB':
-                return (
-                    <div className="text-white/90 text-xs">
-                        {situation.balls}-{situation.strikes}, {situation.outs} Out{situation.outs !== 1 ? 's' : ''}
-                        {situation.onBase && (
-                            <span>
-                                {situation.onFirst && ' •1B'}
-                                {situation.onSecond && ' •2B'}
-                                {situation.onThird && ' •3B'}
-                            </span>
-                        )}
-                    </div>
-                );
-            case 'NHL':
-                return (
-                    <div className="text-white/90 text-xs">
-                        {situation.strength}
-                        {situation.powerPlay && ' • Power Play'}
                     </div>
                 );
             default:

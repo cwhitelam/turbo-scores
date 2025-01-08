@@ -1,10 +1,8 @@
-import React from 'react';
 import { Play, Pause, Maximize, Minimize } from 'lucide-react';
 import { useAutoScrollContext } from '../../context/AutoScrollContext';
 import { useGlobalGameContext } from '../../context/GlobalGameContext';
 import { SportSelector } from '../common/SportSelector';
 import { useSport } from '../../context/SportContext';
-import { SPORTS } from '../../config/sports';
 import { useFullscreen } from '../../hooks/useFullscreen';
 import { getOrdinalSuffix } from '../../utils/formatting';
 

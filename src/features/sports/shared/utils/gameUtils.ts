@@ -1,6 +1,5 @@
 import { GameData, GameSituation } from '../types/game';
 import { SportType } from '../types/sports';
-import { sportConfigs } from '../constants/sportConfigs';
 
 export function formatGameClock(clock: string | undefined, sport: SportType): string {
     if (!clock) return '';
@@ -11,37 +10,40 @@ export function formatGameClock(clock: string | undefined, sport: SportType): st
 }
 
 export function formatPeriod(period: number, sport: SportType): string {
-    const config = sportConfigs[sport];
-    const periodName = config.periodName;
+    if (!period) return '';
 
-    // Debug logs
-    console.log('🏀 Format Period Debug:', {
-        period,
-        sport,
-        config,
-        defaultPeriodCount: config.defaultPeriodCount,
-        hasQuarters: config.hasQuarters
-    });
-
-    // Handle final state
-    if (period === config.defaultPeriodCount && !config.hasQuarters) {
-        console.log('🏀 Returning FINAL state');
+    // Handle final states
+    if (period === -1) {
         return 'FINAL';
     }
 
-    if (period <= config.defaultPeriodCount) {
-        if (config.hasQuarters) {
-            console.log('🏀 Returning quarter format:', `Q${period}`);
-            return `Q${period}`;
-        }
-        console.log('🏀 Returning period format:', `${period}${periodName}`);
-        return `${period}${periodName}`;
-    }
+    switch (sport) {
+        case 'NBA': {
+            // Regular quarters (1-4)
+            if (period <= 4) {
+                return `Q${period}`;
+            }
 
-    // Overtime periods
-    const otPeriod = period - config.defaultPeriodCount;
-    console.log('🏀 Returning overtime format:', `${otPeriod}OT`);
-    return `${otPeriod}OT`;
+            // Overtime periods
+            const otPeriod = period - 4;
+            return `${otPeriod}OT`;
+        }
+
+        case 'NFL': {
+            // Regular quarters (1-4)
+            if (period <= 4) {
+                const periodName = ['1st', '2nd', '3rd', '4th'][period - 1];
+                return periodName;
+            }
+
+            // Overtime
+            const otPeriod = period - 4;
+            return `${otPeriod}OT`;
+        }
+
+        default:
+            return `${period}`;
+    }
 }
 
 export function formatGameSituation(situation: GameSituation, sport: SportType): string {

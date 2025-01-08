@@ -1,7 +1,5 @@
-import React from 'react';
 import { NBAGameData } from '../types/game';
 import { useGameData } from '../../../../hooks/game/useGameData';
-import { formatNBAGameClock, formatNBAPeriod, getGamePhase } from '../utils/gameUtils';
 import { getTeamLogoUrl } from '../../../../utils/teamUtils';
 
 interface NBAScoreboardProps {
@@ -10,7 +8,7 @@ interface NBAScoreboardProps {
 }
 
 export function NBAScoreboard({ gameId, className = '' }: NBAScoreboardProps) {
-    const { data: game, isLoading, error } = useGameData<NBAGameData>(gameId);
+    const { isLoading, error } = useGameData<NBAGameData>(gameId);
 
     if (isLoading) {
         return <div className="animate-pulse h-32 bg-gray-200 rounded-lg"></div>;
@@ -21,47 +19,9 @@ export function NBAScoreboard({ gameId, className = '' }: NBAScoreboardProps) {
     }
 
     const { home, away } = game.teams;
-    const phase = getGamePhase(game);
-    const period = formatNBAPeriod(game.status.period);
-    const clock = formatNBAGameClock(game.status.clock);
-
-    // Debug logs
-    console.log('🏀 Game Status Debug:', {
-        gameId,
-        phase,
-        period,
-        clock,
-        rawStatus: game.status,
-        state: game.status.state,
-        type: game.status.type,
-        completed: game.status.type?.completed,
-    });
-
-    // Get display status
-    let displayStatus = '';
-    if (phase === 'pregame') {
-        displayStatus = 'Game starts soon';
-    } else if (phase === 'postgame') {
-        displayStatus = game.status.period > 4 ? `Final/${period}` : 'Final';
-    } else {
-        displayStatus = `${period} ${clock}`;
-    }
-
-    console.log('🏀 Display Status:', displayStatus);
 
     return (
         <div className={`bg-white rounded-lg shadow-lg p-4 ${className}`}>
-            <div className="flex justify-between items-center mb-4">
-                <div className="text-sm font-semibold text-gray-600">
-                    {displayStatus}
-                </div>
-                {game.broadcast && (
-                    <div className="text-sm text-gray-500">
-                        {game.broadcast.network}
-                    </div>
-                )}
-            </div>
-
             <div className="space-y-4">
                 {/* Home Team */}
                 <div className="flex justify-between items-center">
@@ -99,23 +59,6 @@ export function NBAScoreboard({ gameId, className = '' }: NBAScoreboardProps) {
                     <div className="text-3xl font-bold">{away.score}</div>
                 </div>
             </div>
-
-            {/* Game Situation */}
-            {phase === 'ingame' && game.situation && (
-                <div className="mt-4 text-sm text-gray-600">
-                    {game.situation.possession === 'home' ? home.name :
-                        game.situation.possession === 'away' ? away.name : ''} Ball
-                    {game.situation.shotClock && ` • ${game.situation.shotClock}s`}
-                    {game.situation.inBonus && ' • Bonus'}
-                </div>
-            )}
-
-            {/* Last Play */}
-            {game.situation?.lastPlay && (
-                <div className="mt-2 text-sm text-gray-500">
-                    {game.situation.lastPlay.description}
-                </div>
-            )}
         </div>
     );
 } 

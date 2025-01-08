@@ -12,7 +12,7 @@ export class NBATimeHandler implements GameTimeHandler {
 
         // Handle ESPN API game status format
         if (gameStatus) {
-            const { clock, displayClock, period, type } = gameStatus;
+            const { displayClock, period, type } = gameStatus;
 
             // Handle final state
             if (type?.state === 'post' && type?.completed) {
@@ -95,22 +95,6 @@ export class NBATimeHandler implements GameTimeHandler {
             };
         }
 
-        // Handle quarter with time format (e.g., "4Q • 0.0" or "4Q 0.0")
-        const quarterTimeMatch = timeString.match(/(\d)Q\s*[•]?\s*(\d+\.\d+)/);
-        if (quarterTimeMatch) {
-            const quarterNum = parseInt(quarterTimeMatch[1]);
-            const timeLeft = parseFloat(quarterTimeMatch[2]);
-            return {
-                isLive: true,
-                displayTime: timeString,
-                sortableTime: new Date(),
-                period: `${quarterNum}${this.getQuarterSuffix(quarterNum)}`,
-                periodNumber: quarterNum,
-                // Only mark as final if it's 4th quarter or later with 0.0 time and explicitly marked final
-                isFinal: false
-            };
-        }
-
         // Handle "End of X" states
         if (this.END_STATES.includes(lowerTimeString)) {
             const quarter = this.getQuarterFromEndState(lowerTimeString);
@@ -125,7 +109,7 @@ export class NBATimeHandler implements GameTimeHandler {
 
         // Handle in-game time format "11:45 - 3rd"
         if (timeString.includes(' - ')) {
-            const [time, period] = timeString.split(' - ');
+            const [period] = timeString.split(' - ');
             const periodNumber = this.getPeriodNumber(period);
             const isOT = period.toUpperCase().includes('OT');
             const overtimePeriod = isOT ? parseInt(period.replace(/\D/g, '') || '1') : 0;
