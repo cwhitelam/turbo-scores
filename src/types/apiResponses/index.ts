@@ -10,10 +10,10 @@ export * from './common';
 // Sport-specific API types
 export * from './nba';
 export * from './nfl';
+export * from './mlb';
 
 // Other API types
 export * from './weather';
 
 // Add the following when implemented:
-// export * from './mlb';
 // export * from './nhl'; 
