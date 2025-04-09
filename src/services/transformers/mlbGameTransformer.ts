@@ -8,7 +8,29 @@ export async function transformMLBGameData(event: any): Promise<Game> {
   const awayTeam = event.competitions[0].competitors.find((team: any) => team.homeAway === 'away');
   const venue = event.competitions[0].venue;
   const situation = event.competitions[0].situation;
-  
+  const status = event.status;
+
+  // For games that are finished (post-game state)
+  if (status?.type?.state === 'post') {
+    // Check if the game went to extra innings (MLB games normally have 9 innings)
+    let quarter = 'FINAL';
+    if (status?.period > 9) {
+      quarter = `FINAL/${status.period}`;
+    }
+
+    return {
+      id: event.id,
+      homeTeam: transformTeamData(homeTeam),
+      awayTeam: transformTeamData(awayTeam),
+      venue: transformVenueData(venue),
+      weather: await transformWeatherData(event.weather, venue),
+      quarter: quarter,
+      timeLeft: '',
+      startTime: status.type.shortDetail,
+      situation: transformMLBSituation(situation)
+    };
+  }
+
   return {
     id: event.id,
     homeTeam: transformTeamData(homeTeam),
@@ -17,7 +39,7 @@ export async function transformMLBGameData(event: any): Promise<Game> {
     weather: await transformWeatherData(event.weather, venue),
     quarter: getMLBInning(situation),
     timeLeft: getMLBCount(situation),
-    startTime: event.status.type.shortDetail,
+    startTime: status.type.shortDetail,
     situation: transformMLBSituation(situation)
   };
 }
@@ -36,7 +58,7 @@ function getMLBCount(situation: any): string {
 
 function transformMLBSituation(situation: any) {
   if (!situation) return undefined;
-  
+
   return {
     balls: situation.balls || 0,
     strikes: situation.strikes || 0,

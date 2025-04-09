@@ -1,4 +1,5 @@
 import { isPlayoffWeek } from './seasonUtils';
+import { parseGameTime } from './dateUtils';
 
 export function shouldResetSchedule(): boolean {
   const now = new Date();
@@ -17,7 +18,7 @@ export function shouldResetSchedule(): boolean {
 
 export function isGameFromPreviousWeek(gameTime: string): boolean {
   const now = new Date();
-  const gameDate = parseGameDate(gameTime);
+  const gameDate = parseGameTime(gameTime);
   const isPlayoffs = isPlayoffWeek();
 
   if (isPlayoffs) {
@@ -33,20 +34,4 @@ export function isGameFromPreviousWeek(gameTime: string): boolean {
   }
 
   return false;
-}
-
-function parseGameDate(timeString: string): Date {
-  const now = new Date();
-  const [time, period] = timeString.split(' ');
-  const [hours, minutes] = time.split(':').map(Number);
-
-  // Convert to 24-hour format
-  let hour24 = hours;
-  if (period === 'PM' && hours !== 12) hour24 += 12;
-  if (period === 'AM' && hours === 12) hour24 = 0;
-
-  const gameDate = new Date(now);
-  gameDate.setHours(hour24, minutes, 0, 0);
-
-  return gameDate;
 }

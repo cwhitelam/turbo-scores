@@ -1,14 +1,17 @@
 import { Timer } from 'lucide-react';
 import { useCountdown } from '../../hooks/useCountdown';
-import { parseGameTime } from '../../utils/dateUtils';
+import { parseGameTime, getTimezoneAbbreviation } from '../../utils/dateUtils';
 
 interface GameCountdownProps {
     startTime: string;
+    showTimezone?: boolean;
 }
 
-export function GameCountdown({ startTime }: GameCountdownProps) {
-    const timeLeft = useCountdown(parseGameTime(startTime));
+export function GameCountdown({ startTime, showTimezone = false }: GameCountdownProps) {
+    const gameDate = parseGameTime(startTime);
+    const timeLeft = useCountdown(gameDate);
     const isStartingSoon = timeLeft.hours === 0 && timeLeft.minutes < 30;
+    const timezone = getTimezoneAbbreviation();
 
     if (timeLeft.hours === 0 && timeLeft.minutes === 0 && timeLeft.seconds === 0) {
         return (
@@ -32,6 +35,10 @@ export function GameCountdown({ startTime }: GameCountdownProps) {
                 <TimeUnit value={timeLeft.minutes} unit="m" />
                 <span className="text-white/40 mx-0.5">:</span>
                 <TimeUnit value={timeLeft.seconds} unit="s" />
+
+                {showTimezone && (
+                    <span className="ml-1.5 text-white/40 text-xs">{timezone}</span>
+                )}
             </div>
         </div>
     );

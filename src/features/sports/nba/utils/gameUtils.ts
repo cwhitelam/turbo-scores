@@ -53,7 +53,7 @@ export function getTimeRemaining(game: GameData): string {
         return 'Game starts soon';
     }
     if (game.status.state === 'post') {
-        return 'Final';
+        return 'FINAL';
     }
 
     const period = formatNBAPeriod(game.status.period);

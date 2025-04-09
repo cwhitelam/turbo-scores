@@ -49,10 +49,10 @@ export const ScoreCard = React.memo(function ScoreCard(props: Game) {
 
     // Determine if possession should be shown based on game state
     const shouldShowPossession = currentSport === 'NFL' &&
-        props.quarter !== 'Final' &&
+        !props.quarter?.startsWith('FINAL') &&
         props.quarter !== '0Q' &&
-        props.quarter !== 'Half' &&
-        props.quarter !== 'Delayed' &&
+        props.quarter !== 'HALFTIME' &&
+        props.quarter !== 'DELAYED' &&
         !props.quarter?.startsWith('F');
 
     return (

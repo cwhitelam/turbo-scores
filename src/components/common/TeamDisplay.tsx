@@ -14,7 +14,7 @@ interface TeamDisplayProps {
 export function TeamDisplay({ team, gameId, hasPossession, isHomeTeam, quarter }: TeamDisplayProps) {
     const { currentSport } = useSport();
     const sport = currentSport.toLowerCase();
-    const isGameOver = quarter?.startsWith('F') || quarter === 'Final';
+    const isGameOver = quarter?.startsWith('FINAL') || quarter?.startsWith('F');
     const [prevScore, setPrevScore] = useState(team.score);
     const [isScoreIncreased, setIsScoreIncreased] = useState(false);
 

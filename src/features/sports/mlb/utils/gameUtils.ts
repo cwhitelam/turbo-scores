@@ -58,7 +58,7 @@ export function getTimeRemaining(game: GameData): string {
         return 'Game starts soon';
     }
     if (game.status.state === 'post') {
-        return 'Final';
+        return 'FINAL';
     }
 
     return formatInning(game.status.period);
