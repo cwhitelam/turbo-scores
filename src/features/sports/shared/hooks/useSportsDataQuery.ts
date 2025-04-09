@@ -124,7 +124,10 @@ export function useSportsDataQuery(sport: Sport) {
 
     const selectFn = useCallback((data: Game[]) => {
         // Normalize the data
-        const normalizedData = normalizeData(data);
+        const normalizedData = normalizeData(data).map(game => ({
+            ...game,
+            gameSport: sport // Add explicit sport tracking to each game
+        }));
 
         // Handle initial load
         if (isInitialLoadRef.current) {
@@ -165,7 +168,7 @@ export function useSportsDataQuery(sport: Sport) {
 
         // Return current data
         return updateStateRef.current.data;
-    }, [normalizeData, hasScoreChanged, safeUpdate]);
+    }, [normalizeData, hasScoreChanged, safeUpdate, sport]);
 
     const { data: games = [], isLoading, error } = useQuery<Game[], Error>({
         queryKey: ['sports', sport],

@@ -39,4 +39,5 @@ export interface PlayerStat {
   value: number;
   statType: StatType;
   displayValue: string;
+  currentSport?: string;
 }

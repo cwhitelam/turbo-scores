@@ -14,9 +14,57 @@ function getCacheKey(gameId: string, sport: Sport): string {
   return `${sport}-${gameId}`;
 }
 
+// Strict validation for sport-specific gameIds
+const SPORT_GAME_ID_PATTERNS: Record<string, RegExp> = {
+  NFL: /^40167\d{3}$/,
+  MLB: /^40169\d{3}$/,
+  NBA: /^40160\d{3}$/,
+  NHL: /^40190\d{3}$/
+};
+
+/**
+ * Validates that a gameId belongs to the specified sport using
+ * strict regex patterns
+ */
+function isValidGameIdForSport(gameId: string, sport: Sport): boolean {
+  if (!gameId) return false;
+
+  const pattern = SPORT_GAME_ID_PATTERNS[sport];
+  if (!pattern) return true; // Allow if no pattern defined
+
+  const isValid = pattern.test(gameId);
+  if (!isValid) {
+    console.error(`❌ Invalid gameId ${gameId} for sport ${sport}`);
+  }
+  return isValid;
+}
+
+/**
+ * Clears the stats cache when switching sports to prevent
+ * stats from one sport showing up when viewing another sport
+ */
+export function clearStatsCache(): void {
+  statsCache.clear();
+  pendingFetches.clear();
+  console.log('Stats cache cleared due to sport change');
+}
+
 export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL') {
   if (!gameId) {
     return { stats: [], timestamp: Date.now(), isComplete: false };
+  }
+
+  // Log for debugging
+  console.log(`🔍 fetchAndProcessStats called for ${sport} game ${gameId}`);
+
+  // First, strictly validate the gameId belongs to the specified sport
+  if (!isValidGameIdForSport(gameId, sport)) {
+    console.error(`❌ Sport-gameId mismatch detected: ${gameId} is not a valid ${sport} game ID`);
+    return {
+      stats: [],
+      timestamp: Date.now(),
+      isComplete: false
+    };
   }
 
   const now = Date.now();
@@ -25,12 +73,15 @@ export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL')
 
   // Return cached data if it's still valid
   if (cached && now - cached.timestamp < CACHE_TTL) {
+    console.log(`🔄 Using cached data for ${cacheKey}`);
     return cached;
   }
 
-  // If there's already a pending fetch for this game, return that promise
-  const pending = pendingFetches.get(gameId);
+  // If there's already a pending fetch for this game+sport, return that promise
+  // Using cacheKey instead of just gameId to avoid cross-sport contamination
+  const pending = pendingFetches.get(cacheKey);
   if (pending) {
+    console.log(`⏳ Using pending fetch for ${cacheKey}`);
     return pending;
   }
 
@@ -52,6 +103,21 @@ export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL')
       }
 
       const data = await response.json();
+
+      // Verify the response URL contains the expected sport path 
+      // (e.g. baseball/mlb for MLB, not football/nfl)
+      const responseUrl = response.url;
+      if (!responseUrl.includes(sportConfig.apiPath)) {
+        console.error(`❌ Response URL ${responseUrl} doesn't match expected sport ${sport}`);
+        return { stats: [], timestamp: now, isComplete: false };
+      }
+
+      // Add a sport check to ensure the data is for the right sport
+      if (data?.header?.league?.abbreviation &&
+        data.header.league.abbreviation !== sport) {
+        console.error(`❌ Sport mismatch! Requested ${sport} but received ${data.header.league.abbreviation}`);
+        return { stats: [], timestamp: now, isComplete: false };
+      }
 
       // Validate required data structure - MLB doesn't require leaders at the top level
       if (!data?.leaders?.length && sport !== 'MLB') {
@@ -78,7 +144,7 @@ export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL')
           break;
         case 'MLB':
           stats = processMLBStats(data);
-          console.log(`⚾ Processed ${stats.length} MLB stats`);
+          console.log(`⚾ Processed ${stats.length} MLB stats for ${cacheKey}`);
 
           // If no stats were found, add basic fallback stats from competition data
           if (stats.length === 0 && data?.header?.competitions?.[0]?.competitors) {
@@ -107,6 +173,12 @@ export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL')
           console.warn(`No stats processor for sport: ${sport}`);
       }
 
+      // Add sport to each stat for extra safety
+      stats = stats.map(stat => ({
+        ...stat,
+        currentSport: sport
+      }));
+
       const result = {
         stats: stats.sort((a, b) => b.value - a.value),
         timestamp: now,
@@ -122,12 +194,12 @@ export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL')
       logFetchError(`${sport} Stats for game ${gameId}`, error);
       return { stats: [], timestamp: now, isComplete: false };
     } finally {
-      // Clean up the pending fetch
-      pendingFetches.delete(gameId);
+      // Clean up the pending fetch - use the cacheKey not just gameId
+      pendingFetches.delete(cacheKey);
     }
   })();
 
-  // Store the pending fetch
-  pendingFetches.set(gameId, fetchPromise);
+  // Store the pending fetch with the cache key
+  pendingFetches.set(cacheKey, fetchPromise);
   return fetchPromise;
 }

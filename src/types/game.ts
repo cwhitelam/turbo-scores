@@ -61,6 +61,12 @@ export interface Game {
   isUpcoming?: boolean;
   gameDate?: string;
   isSeasonOpener?: boolean;
+
+  /**
+   * Explicitly tracks which sport this game belongs to.
+   * Required to prevent cross-sport contamination when switching tabs.
+   */
+  gameSport?: string;
 }
 
 export interface WinProbability {
