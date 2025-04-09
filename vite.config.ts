@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -17,6 +18,7 @@ export default defineConfig(({ command, mode }) => {
   });
 
   const isDev = mode === 'development';
+  const isAnalyze = env.ANALYZE === 'true';
 
   // Explicitly define environment variables for the client
   const envVars = {
@@ -31,8 +33,34 @@ export default defineConfig(({ command, mode }) => {
     SSR: false
   };
 
+  // Configure plugins based on mode
+  const plugins = [
+    react({
+      // Babel configuration to optimize bundle size
+      babel: {
+        // Tree shaking optimization
+        plugins: [
+          ['babel-plugin-transform-react-remove-prop-types', { removeImport: true }]
+        ],
+      }
+    }),
+  ];
+
+  // Add visualizer when analyzing the bundle
+  if (isAnalyze) {
+    plugins.push(
+      visualizer({
+        filename: './dist/stats.html',
+        open: true,
+        gzipSize: true,
+        brotliSize: true,
+        template: 'treemap', // sunburst, treemap, network
+      })
+    );
+  }
+
   return {
-    plugins: [react()],
+    plugins,
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -42,17 +70,56 @@ export default defineConfig(({ command, mode }) => {
       outDir: 'dist',
       sourcemap: isDev,
       minify: isDev ? false : 'terser',
+      // Target modern browsers for smaller bundles
+      target: 'es2020',
       terserOptions: isDev ? undefined : {
         compress: {
-          drop_console: false,
+          drop_console: mode === 'production',
+          drop_debugger: true,
+          pure_funcs: mode === 'production' ? ['console.log', 'console.debug', 'console.info'] : [],
         },
+        mangle: {
+          // Don't mangle in development for better debugging
+          toplevel: mode === 'production',
+        },
+        format: {
+          comments: false,
+        }
       },
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom'],
-            utils: ['@heroicons/react', 'lucide-react'],
-          },
+          // Optimize chunk naming for better caching
+          chunkFileNames: 'assets/[name]-[hash].js',
+          entryFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]',
+          // Improve tree-shaking by splitting per-module chunks
+          manualChunks: (id) => {
+            // Framework chunks
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'vendor-react';
+            }
+
+            // UI Components
+            if (id.includes('node_modules/@heroicons/') || id.includes('node_modules/lucide-react/')) {
+              return 'vendor-ui';
+            }
+
+            // Data libraries
+            if (id.includes('node_modules/@tanstack/react-query')) {
+              return 'vendor-data';
+            }
+
+            // Application core
+            if (id.includes('/src/components/layout/') || id.includes('/src/components/common/')) {
+              return 'app-core';
+            }
+
+            // Sport specific chunks
+            if (id.includes('/src/features/sports/nfl/')) return 'sport-nfl';
+            if (id.includes('/src/features/sports/nba/')) return 'sport-nba';
+            if (id.includes('/src/features/sports/mlb/')) return 'sport-mlb';
+            if (id.includes('/src/features/sports/nhl/')) return 'sport-nhl';
+          }
         },
       },
     },
@@ -67,6 +134,12 @@ export default defineConfig(({ command, mode }) => {
       port: parseInt(env.PORT || '3000'),
       host: true,
     },
+    // Optimize dependencies that change infrequently
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
+      // Exclude larger libraries that are only used conditionally
+      exclude: [],
+    },
     define: {
       __APP_ENV__: JSON.stringify(env.VITE_APP_ENV),
       // Explicitly inject each environment variable
@@ -79,6 +152,14 @@ export default defineConfig(({ command, mode }) => {
       'import.meta.env.DEV': mode === 'development',
       'import.meta.env.PROD': mode === 'production',
       'import.meta.env.SSR': false,
+    },
+    esbuild: {
+      // Enable tree-shaking during development
+      treeShaking: true,
+      // Smaller bundle size (generates bigger code but compresses better)
+      legalComments: 'none',
+      // Target modern browsers
+      target: 'es2020',
     },
   };
 });
