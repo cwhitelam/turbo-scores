@@ -69,6 +69,22 @@ Implemented a smart chunking strategy in Rollup:
 - `app-core`: Shared application components
 - `sport-*`: Sport-specific code (NFL, NBA, MLB, NHL)
 
+### 6. Intelligent Preloading
+
+Implemented a sophisticated preloading system to improve perceived performance:
+
+- Created utilities that preload assets during idle browser time
+- Added hooks to intelligently preload content based on user behavior
+- Implemented game-state aware preloading that anticipates user needs
+
+```jsx
+// Example: Preload sport-specific assets when user navigates to sport section
+usePreloadAssets({ type: 'sport', sport: 'nba' });
+
+// Example: Preload assets for the next game phase
+usePreloadNextPhase(gameState, gameId);
+```
+
 ## 📌 Tools & Scripts
 
 Several utility scripts have been created to help maintain optimal bundle size:
@@ -99,6 +115,12 @@ Several utility scripts have been created to help maintain optimal bundle size:
    npm run find-large-components
    ```
 
+6. **Master Optimization Script**
+   ```
+   npm run optimize      # Analyze all aspects
+   npm run optimize:fix  # Fix issues automatically
+   ```
+
 ## 📈 Monitoring & Maintenance
 
 To keep bundle sizes optimized over time:
@@ -107,6 +129,7 @@ To keep bundle sizes optimized over time:
 2. Use the import optimizer regularly: `npm run analyze:imports`
 3. Check for large components: `npm run find-large-components`
 4. Periodically audit dependencies with `npm run analyze:packages`
+5. When adding new routes or features, implement preloading using the `usePreloadAssets` hook
 
 ## 🚀 Future Optimizations
 
@@ -115,5 +138,5 @@ Potential areas for further improvement:
 1. Implement module federation for micro-frontend approach
 2. Add critical CSS extraction for above-the-fold content
 3. Explore lighter alternatives to current dependencies
-4. Implement preloading/prefetching strategy based on user behavior
-5. Add service worker for caching and offline support 
+4. Add service worker for caching and offline support
+5. Create component-level metrics to track render performance 
