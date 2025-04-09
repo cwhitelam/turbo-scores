@@ -100,7 +100,7 @@ async function getNextSeasonGames(): Promise<Game[]> {
 
 async function findNextGameDay(): Promise<Date | null> {
   const today = new Date();
-  let searchDate = new Date(today);
+  const searchDate = new Date(today);
 
   for (let i = 1; i <= 7; i++) {
     searchDate.setDate(today.getDate() + i);

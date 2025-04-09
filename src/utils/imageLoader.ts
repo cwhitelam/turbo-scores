@@ -67,7 +67,7 @@ export function getOptimizedImageUrl(
 
         // For external images, add a proxy service (optional)
         // This is an example using Cloudinary, but you can use any image optimization service
-        let optimizedUrl = src;
+        const optimizedUrl = src;
 
         // When in production, could use an image optimization proxy
         if (import.meta.env.PROD) {

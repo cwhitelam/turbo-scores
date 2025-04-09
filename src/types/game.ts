@@ -13,6 +13,7 @@ export interface VenueInfo {
   name: string;
   city: string;
   state: string;
+  roof?: 'dome' | 'closed' | 'open' | 'outdoor' | string;
 }
 
 export interface GameWeather {

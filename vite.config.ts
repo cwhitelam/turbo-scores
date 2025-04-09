@@ -133,6 +133,10 @@ export default defineConfig(({ command, mode }) => {
     preview: {
       port: parseInt(env.PORT || '3000'),
       host: true,
+      headers: {
+        // Add HTTP cache headers for preview server (simulates production)
+        'Cache-Control': 'public, max-age=31536000', // 1 year for immutable assets
+      },
     },
     // Optimize dependencies that change infrequently
     optimizeDeps: {
@@ -161,5 +165,16 @@ export default defineConfig(({ command, mode }) => {
       // Target modern browsers
       target: 'es2020',
     },
+    // Add cache-control headers to static assets for better caching
+    experimental: {
+      renderBuiltUrl(filename, { hostType }) {
+        // Only apply custom URLs for client (not during SSR)
+        if (hostType === 'js') {
+          // Add a cache-busting query parameter based on a hash
+          return { relative: true };
+        }
+        return filename;
+      }
+    }
   };
 });

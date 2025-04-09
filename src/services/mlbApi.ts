@@ -54,7 +54,7 @@ async function fetchGamesForDate(date: Date): Promise<Game[]> {
 
 async function findNextGameDay(): Promise<Date | null> {
   const today = new Date();
-  let searchDate = new Date(today);
+  const searchDate = new Date(today);
   
   // Look up to 7 days ahead
   for (let i = 1; i <= 7; i++) {
