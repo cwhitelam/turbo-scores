@@ -1,4 +1,5 @@
 import { PlayerStat } from '../../../../types/stats';
+import { NBAGameLeadersResponse, NBAAthleteInfo, NBABoxScoreTeam } from '../../../../types/apiResponses/nba';
 
 interface NBAPlayerStats {
     name: string;
@@ -6,10 +7,15 @@ interface NBAPlayerStats {
     pts: number;
     reb: number;
     ast: number;
-    athlete?: any;
+    athlete?: NBAAthleteInfo;
 }
 
-export function processNBAStats(data: any): PlayerStat[] {
+/**
+ * Process NBA game stats from the API response into a standardized format
+ * @param data - The raw NBA game leaders API response
+ * @returns An array of formatted player stats
+ */
+export function processNBAStats(data: NBAGameLeadersResponse): PlayerStat[] {
     const stats: PlayerStat[] = [];
     const playerStats = new Map<string, NBAPlayerStats>();
 
@@ -21,9 +27,9 @@ export function processNBAStats(data: any): PlayerStat[] {
 
     // Create a map of player stats from boxscore
     const boxScoreStats = new Map<string, string[]>();
-    boxScore.players.forEach((teamStats: any) => {
+    boxScore.players.forEach((teamStats: NBABoxScoreTeam) => {
         const teamAbbreviation = teamStats.team.abbreviation;
-        teamStats.statistics[0]?.athletes?.forEach((athlete: any) => {
+        teamStats.statistics[0]?.athletes?.forEach((athlete) => {
             if (athlete.athlete?.id && athlete.stats) {
                 boxScoreStats.set(athlete.athlete.id, athlete.stats);
             }
