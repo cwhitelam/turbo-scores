@@ -1,10 +1,11 @@
-import { GameTimeHandler, GameTimeState } from './types';
+import { GameTimeState, GameStatus } from './types';
+import { parseGameTime, formatDisplayTime, getTimezoneAbbreviation } from '../dateUtils';
 
-export class NFLTimeHandler implements GameTimeHandler {
+export class NFLTimeHandler {
     private readonly QUARTERS = ['1st', '2nd', '3rd', '4th'];
     private readonly FINAL_STATES = ['final', 'final/ot'];
 
-    parseGameTime(timeString: string): GameTimeState {
+    parseGameTime(timeString: string, gameStatus?: GameStatus): GameTimeState {
         if (!timeString) {
             return this.createDefaultState();
         }
@@ -13,11 +14,14 @@ export class NFLTimeHandler implements GameTimeHandler {
 
         // Handle final states
         if (this.FINAL_STATES.includes(lowerTimeString)) {
+            const isOT = lowerTimeString.includes('ot');
             return {
                 isLive: false,
-                displayTime: timeString,
+                displayTime: isOT ? 'FINAL/OT' : 'FINAL',
                 sortableTime: new Date(),
-                isFinal: true
+                isFinal: true,
+                isOvertime: isOT,
+                periodNumber: isOT ? 5 : 4
             };
         }
 
@@ -25,10 +29,21 @@ export class NFLTimeHandler implements GameTimeHandler {
         if (lowerTimeString === 'halftime') {
             return {
                 isLive: true,
-                displayTime: 'Halftime',
+                displayTime: 'HALFTIME',
                 sortableTime: new Date(),
                 isHalftime: true,
                 periodNumber: 2
+            };
+        }
+
+        // Handle end of game state (4th quarter with 0:00 left)
+        if (lowerTimeString.includes('4th') && lowerTimeString.includes('0:00')) {
+            return {
+                isLive: false,
+                displayTime: 'FINAL',
+                sortableTime: new Date(),
+                isFinal: true,
+                periodNumber: 4
             };
         }
 
@@ -50,22 +65,8 @@ export class NFLTimeHandler implements GameTimeHandler {
 
         // Handle future game time "8:15 PM EST"
         try {
-            const [time, period, timezone] = timeString.split(' ');
-            const [hours, minutes] = time.split(':').map(Number);
-            const isPM = period === 'PM';
-
-            const now = new Date();
-            const gameTime = new Date(now);
-
-            let hour24 = hours;
-            if (isPM && hours !== 12) hour24 += 12;
-            if (!isPM && hours === 12) hour24 = 0;
-
-            gameTime.setHours(hour24, minutes, 0, 0);
-
-            if (gameTime < now) {
-                gameTime.setDate(gameTime.getDate() + 1);
-            }
+            // Use the centralized time parser
+            const gameTime = parseGameTime(timeString);
 
             return {
                 isLive: false,
@@ -80,10 +81,10 @@ export class NFLTimeHandler implements GameTimeHandler {
 
     formatGameTime(state: GameTimeState): string {
         if (state.isFinal) {
-            return state.isOvertime ? 'Final/OT' : 'Final';
+            return state.isOvertime ? 'FINAL/OT' : 'FINAL';
         }
         if (state.isHalftime) {
-            return 'Halftime';
+            return 'HALFTIME';
         }
         if (state.isLive) {
             return state.displayTime;
@@ -100,6 +101,7 @@ export class NFLTimeHandler implements GameTimeHandler {
         }
     }
 
+    // Helper methods
     private getPeriodNumber(period: string): number {
         const quarterIndex = this.QUARTERS.indexOf(period);
         if (quarterIndex !== -1) {
@@ -117,10 +119,8 @@ export class NFLTimeHandler implements GameTimeHandler {
     }
 
     private formatTimeOnly(date: Date): string {
-        return date.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            timeZoneName: 'short'
-        });
+        const formatted = formatDisplayTime(date);
+        const timezone = getTimezoneAbbreviation();
+        return `${formatted} ${timezone}`;
     }
 } 

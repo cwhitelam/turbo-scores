@@ -1,6 +1,7 @@
-import { GameTimeHandler, GameTimeState, GameStatus } from './types';
+import { GameTimeState, GameStatus } from './types';
+import { parseGameTime, formatDisplayTime, getTimezoneAbbreviation } from '../dateUtils';
 
-export class NBATimeHandler implements GameTimeHandler {
+export class NBATimeHandler {
     private readonly QUARTERS = ['1st', '2nd', '3rd', '4th'];
     private readonly FINAL_STATES = ['final', 'final/ot', 'final/2ot', 'final/3ot', 'final/4ot'];
     private readonly END_STATES = ['end of 1st', 'end of 2nd', 'end of 3rd', 'end of 4th'];
@@ -16,8 +17,8 @@ export class NBATimeHandler implements GameTimeHandler {
 
             // Handle final state
             if (type?.state === 'post' && type?.completed) {
-                const isOT = period > 4;
-                const otPeriod = period - 4;
+                const isOT = period ? period > 4 : false;
+                const otPeriod = period ? period - 4 : 0;
                 const displayTime = isOT
                     ? (otPeriod === 1 ? 'FINAL/OT' : `FINAL/${otPeriod}OT`)
                     : 'FINAL';
@@ -35,7 +36,7 @@ export class NBATimeHandler implements GameTimeHandler {
             if (period === 2 && displayClock === "0.0" && type?.state === 'in') {
                 return {
                     isLive: true,
-                    displayTime: 'HALF',
+                    displayTime: 'HALFTIME',
                     sortableTime: new Date(),
                     isHalftime: true,
                     periodNumber: period
@@ -60,14 +61,22 @@ export class NBATimeHandler implements GameTimeHandler {
                     };
                 }
 
-                // Show regular time format with bullet only for in-progress games
-                const displayTime = isEndOfPeriod && period === 4
-                    ? 'FINAL'
-                    : `${periodDisplay} • ${displayClock}`;
+                // For games in 4th quarter with 0.0 left, show FINAL
+                if (isEndOfPeriod && period === 4) {
+                    return {
+                        isLive: false,
+                        displayTime: 'FINAL',
+                        sortableTime: new Date(),
+                        isFinal: true,
+                        periodNumber: period,
+                        isOvertime: false
+                    };
+                }
 
+                // Show regular time format with bullet for in-progress games
                 return {
                     isLive: true,
-                    displayTime,
+                    displayTime: `${periodDisplay} • ${displayClock}`,
                     sortableTime: new Date(),
                     period: periodDisplay,
                     periodNumber: period,
@@ -109,10 +118,21 @@ export class NBATimeHandler implements GameTimeHandler {
 
         // Handle in-game time format "11:45 - 3rd"
         if (timeString.includes(' - ')) {
-            const [period] = timeString.split(' - ');
+            const [clockTime, period] = timeString.split(' - ');
             const periodNumber = this.getPeriodNumber(period);
             const isOT = period.toUpperCase().includes('OT');
             const overtimePeriod = isOT ? parseInt(period.replace(/\D/g, '') || '1') : 0;
+
+            // Special case for 4th quarter with 0:00 - show as FINAL
+            if (period.includes('4th') && clockTime === '0:00') {
+                return {
+                    isLive: false,
+                    displayTime: 'FINAL',
+                    sortableTime: new Date(),
+                    isFinal: true,
+                    periodNumber: 4
+                };
+            }
 
             return {
                 isLive: true,
@@ -126,22 +146,8 @@ export class NBATimeHandler implements GameTimeHandler {
 
         // Handle future game time "8:00 PM ET"
         try {
-            const [time, period, timezone] = timeString.split(' ');
-            const [hours, minutes] = time.split(':').map(Number);
-            const isPM = period === 'PM';
-
-            const now = new Date();
-            const gameTime = new Date(now);
-
-            let hour24 = hours;
-            if (isPM && hours !== 12) hour24 += 12;
-            if (!isPM && hours === 12) hour24 = 0;
-
-            gameTime.setHours(hour24, minutes, 0, 0);
-
-            if (gameTime < now) {
-                gameTime.setDate(gameTime.getDate() + 1);
-            }
+            // Use the centralized time parser
+            const gameTime = parseGameTime(timeString);
 
             return {
                 isLive: false,
@@ -156,12 +162,12 @@ export class NBATimeHandler implements GameTimeHandler {
 
     formatGameTime(state: GameTimeState): string {
         if (state.isFinal) {
-            if (!state.isOvertime) return 'Final';
+            if (!state.isOvertime) return 'FINAL';
             const otPeriod = state.periodNumber ? state.periodNumber - 4 : 1;
-            return otPeriod === 1 ? 'Final/OT' : `Final/${otPeriod}OT`;
+            return otPeriod === 1 ? 'FINAL/OT' : `FINAL/${otPeriod}OT`;
         }
         if (state.isHalftime) {
-            return 'Halftime';
+            return 'HALFTIME';
         }
         if (state.isLive) {
             return state.displayTime;
@@ -214,23 +220,14 @@ export class NBATimeHandler implements GameTimeHandler {
     }
 
     private formatTimeOnly(date: Date): string {
-        return date.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            timeZoneName: 'short'
-        });
+        const formatted = formatDisplayTime(date);
+        const timezone = getTimezoneAbbreviation();
+        return `${formatted} ${timezone}`;
     }
 
     private capitalizeFirstLetters(str: string): string {
         return str.split(' ').map(word =>
             word.charAt(0).toUpperCase() + word.slice(1)
         ).join(' ');
-    }
-
-    private getQuarterSuffix(num: number): string {
-        if (num === 1) return 'st';
-        if (num === 2) return 'nd';
-        if (num === 3) return 'rd';
-        return 'th';
     }
 } 

@@ -12,7 +12,7 @@ export async function transformNHLGameData(event: any): Promise<Game> {
     const competition = event.competitions[0];
     const homeTeam = competition.competitors?.find((team: any) => team.homeAway === 'home');
     const awayTeam = competition.competitors?.find((team: any) => team.homeAway === 'away');
-    
+
     if (!homeTeam || !awayTeam) {
       throw new Error('Invalid NHL game data: missing team information');
     }
@@ -20,7 +20,34 @@ export async function transformNHLGameData(event: any): Promise<Game> {
     const venue = competition.venue;
     const status = event.status;
     const situation = transformNHLSituation(competition.situation);
-    
+
+    // For games that are finished (post-game state)
+    if (status?.type?.state === 'post') {
+      let quarter = 'FINAL';
+      // Check if the game went to overtime (NHL games have 3 periods normally)
+      if (status?.period > 3) {
+        // Check if it was a shootout (typically period 5)
+        if (status.period === 5) {
+          quarter = 'FINAL/SO';
+        } else {
+          // It was regular overtime (period 4)
+          quarter = 'FINAL/OT';
+        }
+      }
+
+      return {
+        id: event.id,
+        homeTeam: transformTeamData(homeTeam),
+        awayTeam: transformTeamData(awayTeam),
+        venue: transformVenueData(venue),
+        weather: { temp: 70, condition: 'Indoor' }, // NHL games are indoor
+        quarter: quarter,
+        timeLeft: '',
+        startTime: status?.type?.shortDetail || '',
+        situation
+      };
+    }
+
     return {
       id: event.id,
       homeTeam: transformTeamData(homeTeam),

@@ -2,11 +2,20 @@ export interface GameTimeState {
     isLive: boolean;
     displayTime: string;
     sortableTime: Date;
-    period?: string;
     periodNumber?: number;
+    period?: string;
+    isFinal?: boolean;
     isHalftime?: boolean;
     isOvertime?: boolean;
-    isFinal?: boolean;
+    isShootout?: boolean;
+    isEndOfPeriod?: boolean;
+    isIntermission?: boolean;
+    isDelayed?: boolean;
+    isPostponed?: boolean;
+    isMiddleInning?: boolean;
+    isEndInning?: boolean;
+    isTopInning?: boolean;
+    isBottomInning?: boolean;
 }
 
 export interface GameStatusType {
@@ -20,10 +29,12 @@ export interface GameStatusType {
 }
 
 export interface GameStatus {
-    clock: number;
-    displayClock: string;
-    period: number;
-    type: GameStatusType;
+    period?: number;
+    displayClock?: string;
+    type?: {
+        state?: string;
+        completed?: boolean;
+    };
 }
 
 export interface GameTimeHandler {

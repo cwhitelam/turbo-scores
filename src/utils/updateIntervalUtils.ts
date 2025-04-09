@@ -1,4 +1,5 @@
 import { Game } from '../types/game';
+import { parseGameTime } from './dateUtils';
 
 const ACTIVE_GAME_INTERVAL = 30000; // 30 seconds
 const INACTIVE_GAME_INTERVAL = 300000; // 5 minutes
@@ -26,25 +27,4 @@ function isGameActive(game: Game, now: Date): boolean {
   }
 
   return true;
-}
-
-function parseGameTime(timeString: string): Date {
-  const today = new Date();
-  const [time, period] = timeString.split(' ');
-  const [hours, minutes] = time.split(':').map(Number);
-
-  // Convert to 24-hour format
-  let hour24 = hours;
-  if (period === 'PM' && hours !== 12) hour24 += 12;
-  if (period === 'AM' && hours === 12) hour24 = 0;
-
-  const gameDate = new Date(today);
-  gameDate.setHours(hour24, minutes, 0, 0);
-
-  // If the time has already passed today, assume it's for tomorrow
-  if (gameDate < today) {
-    gameDate.setDate(gameDate.getDate() + 1);
-  }
-
-  return gameDate;
 }

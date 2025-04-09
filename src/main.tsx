@@ -5,6 +5,10 @@ import './index.css';
 import RootErrorBoundary from './components/ErrorBoundary/RootErrorBoundary';
 import { ErrorFallbackProps } from './components/ErrorBoundary/ErrorFallback';
 import * as serviceWorkerRegistration from './utils/serviceWorkerRegistration';
+import { TimeHandlerFactory } from './utils/timeHandlers/TimeHandlerFactory';
+
+// Ensure consistent capitalization across all time handlers
+TimeHandlerFactory.ensureCapitalization();
 
 // Custom error fallback component for the application root
 const RootErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError, componentName }) => (
