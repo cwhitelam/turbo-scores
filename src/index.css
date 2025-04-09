@@ -6,16 +6,16 @@
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   .scrollbar-track-gray-800::-webkit-scrollbar-track {
     background: rgb(31, 41, 55);
   }
-  
+
   .scrollbar-thumb-gray-600::-webkit-scrollbar-thumb {
     background: rgb(75, 85, 99);
     border-radius: 3px;
   }
-  
+
   .scrollbar-thumb-gray-600::-webkit-scrollbar-thumb:hover {
     background: rgb(107, 114, 128);
   }
@@ -25,6 +25,7 @@
   0% {
     transform: translateX(100%);
   }
+
   100% {
     transform: translateX(-100%);
   }
@@ -32,4 +33,58 @@
 
 .animate-ticker {
   animation: ticker 20s linear infinite;
+}
+
+/* Service worker update notification */
+.update-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  background-color: #2d3748;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slide-in 0.3s ease-out;
+}
+
+.update-inner {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+.update-inner p {
+  margin: 0;
+  margin-right: 16px;
+  font-size: 14px;
+  color: #e2e8f0;
+}
+
+#reload-app {
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+#reload-app:hover {
+  background-color: #3182ce;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateY(100px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
