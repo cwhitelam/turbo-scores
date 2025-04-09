@@ -7,6 +7,7 @@ import { SportProvider } from './context/SportContext';
 import { QueryProvider } from './providers/QueryProvider';
 import { GameContainer } from './features/sports/shared';
 import AppErrorBoundary from './components/ErrorBoundary/AppErrorBoundary';
+import { PollingMonitor } from './components/debug/PollingMonitor';
 
 export default function App() {
   return (
@@ -24,6 +25,9 @@ export default function App() {
                   <GameContainer />
                 </AutoScrollContainer>
               </AppErrorBoundary>
+
+              {/* Debug components only rendered in development */}
+              {import.meta.env.DEV && <PollingMonitor />}
             </div>
           </AutoScrollProvider>
         </GlobalGameProvider>

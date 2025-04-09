@@ -6,12 +6,17 @@ import { getMLBScoreboard } from '../services/mlbApi';
 import { getNBAScoreboard } from '../services/nbaApi';
 import { getNHLScoreboard } from '../services/nhlApi';
 import { getUpdateInterval } from '../utils/updateIntervalUtils';
-import { useMemo, useRef, useCallback } from 'react';
+import { useMemo, useRef, useCallback, useEffect } from 'react';
+import { debugLog, appMetrics } from '../utils/debugUtils';
 
+// Constants for query configuration
 const STALE_TIME = 30000; // 30 seconds
 const DEFAULT_INTERVAL = 30000; // 30 seconds
 const INITIAL_FETCH_DELAY = 1000; // 1 second delay before first fetch
 const UPDATE_DEBOUNCE = 1000; // 1 second minimum between updates
+
+// Enable/disable debug logging
+const DEBUG = import.meta.env.VITE_FEATURE_DEBUG_MODE === 'true';
 
 type UpdateState = {
     timestamp: number;
@@ -19,8 +24,17 @@ type UpdateState = {
     updateCount: number;
     lastChangeId: string;
     lastScores: Map<string, { home: number; away: number }>;
+    pollingStats: {
+        lastPollTime: number;
+        averageInterval: number;
+        pollCount: number;
+        intervalHistory: number[];
+    };
 };
 
+/**
+ * Custom hook that fetches and manages sports data with optimized polling
+ */
 export function useSportsDataQuery(sport: Sport) {
     // Define all refs first to maintain consistent hook order
     const updateStateRef = useRef<UpdateState>({
@@ -28,11 +42,44 @@ export function useSportsDataQuery(sport: Sport) {
         data: [],
         updateCount: 0,
         lastChangeId: '',
-        lastScores: new Map()
+        lastScores: new Map(),
+        pollingStats: {
+            lastPollTime: 0,
+            averageInterval: DEFAULT_INTERVAL,
+            pollCount: 0,
+            intervalHistory: []
+        }
     });
     const isInitialLoadRef = useRef(true);
     const lastUpdateTimeRef = useRef(0);
     const initialFetchDoneRef = useRef(false);
+    const backgroundRef = useRef(false);
+    const queryStartTimeRef = useRef(Date.now());
+
+    // Listen for visibility changes to detect when app is in background
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            const isHidden = document.hidden;
+            debugLog(`App ${isHidden ? 'hidden' : 'visible'}, adjusting polling...`);
+            backgroundRef.current = isHidden;
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        // Log initial startup
+        debugLog(`${sport} data query initialized`);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+            // Log metrics when unmounting
+            if (DEBUG) {
+                const uptime = Math.round((Date.now() - queryStartTimeRef.current) / 1000);
+                debugLog(`${sport} query unmounted after ${uptime}s, stats:`, updateStateRef.current.pollingStats);
+                appMetrics.polling.logStats(`${sport} polling metrics`);
+            }
+        };
+    }, [sport]);
 
     // Memoize callbacks before using them
     const normalizeData = useCallback((data: Game[]): Game[] => {
@@ -80,6 +127,30 @@ export function useSportsDataQuery(sport: Sport) {
             });
         });
 
+        // Update polling stats
+        const stats = updateStateRef.current.pollingStats;
+        const pollInterval = now - stats.lastPollTime;
+        const newIntervalHistory = [...stats.intervalHistory, pollInterval].slice(-10); // Keep last 10 intervals
+
+        const updatedStats = {
+            lastPollTime: now,
+            pollCount: stats.pollCount + 1,
+            intervalHistory: newIntervalHistory,
+            averageInterval: newIntervalHistory.reduce((sum, val) => sum + val, 0) / newIntervalHistory.length || DEFAULT_INTERVAL
+        };
+
+        if (changedGames.length > 0) {
+            debugLog(`Score update (${sport}): ${changedGames.length} games changed, interval: ${Math.round(pollInterval / 1000)}s`);
+
+            // Log details about changed games for debugging
+            if (DEBUG) {
+                changedGames.forEach(game => {
+                    const prevScores = updateStateRef.current.lastScores.get(game.id);
+                    debugLog(`  Game ${game.id}: ${game.awayTeam.abbreviation} vs ${game.homeTeam.abbreviation} - Score changed from ${prevScores?.away ?? '?'}-${prevScores?.home ?? '?'} to ${game.awayTeam.score}-${game.homeTeam.score}`);
+                });
+            }
+        }
+
         // Update state
         lastUpdateTimeRef.current = now;
         updateStateRef.current = {
@@ -87,7 +158,8 @@ export function useSportsDataQuery(sport: Sport) {
             data: newData,
             updateCount: updateStateRef.current.updateCount + 1,
             lastChangeId: changeId,
-            lastScores: newScoreMap
+            lastScores: newScoreMap,
+            pollingStats: updatedStats
         };
     }, [sport]);
 
@@ -96,6 +168,12 @@ export function useSportsDataQuery(sport: Sport) {
             await new Promise(resolve => setTimeout(resolve, INITIAL_FETCH_DELAY));
             initialFetchDoneRef.current = true;
         }
+
+        // Track fetch timing for analytics
+        const fetchStart = Date.now();
+
+        // Record this poll in app-wide metrics
+        appMetrics.polling.recordPoll();
 
         try {
             let data: Game[];
@@ -115,6 +193,10 @@ export function useSportsDataQuery(sport: Sport) {
                 default:
                     throw new Error(`Unsupported sport: ${sport}`);
             }
+
+            const fetchTime = Date.now() - fetchStart;
+            debugLog(`${sport} data fetched in ${fetchTime}ms, ${data.length} games`);
+
             return data;
         } catch (error) {
             console.error(`Error fetching ${sport} data:`, error);
@@ -136,19 +218,21 @@ export function useSportsDataQuery(sport: Sport) {
                 }])
             );
             updateStateRef.current = {
+                ...updateStateRef.current,
                 timestamp: Date.now(),
                 data: normalizedData,
                 updateCount: 0,
                 lastChangeId: '',
-                lastScores: scoreMap
+                lastScores: scoreMap,
             };
             return normalizedData;
         }
 
         // Check for actual score changes
-        const changedGames = normalizedData.filter((game, i) =>
-            hasScoreChanged(updateStateRef.current.data[i], game)
-        );
+        const changedGames = normalizedData.filter((game, i) => {
+            const origGame = updateStateRef.current.data[i];
+            return origGame ? hasScoreChanged(origGame, game) : true;
+        });
 
         if (changedGames.length === 0) {
             return updateStateRef.current.data;
@@ -167,17 +251,32 @@ export function useSportsDataQuery(sport: Sport) {
         return updateStateRef.current.data;
     }, [normalizeData, hasScoreChanged, safeUpdate]);
 
+    // Calculate dynamic refetch interval based on game state and app visibility
+    const getRefetchInterval = useCallback((query: any) => {
+        const currentData = query.state.data as Game[] | undefined;
+        if (!currentData?.length) return DEFAULT_INTERVAL;
+
+        // Get base interval from the update interval utility
+        let interval = getUpdateInterval(currentData);
+
+        // If app is in background, we can be more conservative with updates
+        if (backgroundRef.current) {
+            // When in background, poll at most once per minute, or less frequently
+            interval = Math.max(interval * 2, 60000);
+
+            debugLog(`App in background, increased interval to ${Math.round(interval / 1000)}s for ${sport}`);
+        }
+
+        return interval;
+    }, [sport]);
+
     const { data: games = [], isLoading, error } = useQuery<Game[], Error>({
         queryKey: ['sports', sport],
         queryFn: fetchSportData,
         staleTime: STALE_TIME,
         gcTime: 300000,
-        refetchInterval: (query) => {
-            const currentData = query.state.data as Game[] | undefined;
-            if (!currentData?.length) return DEFAULT_INTERVAL;
-            return getUpdateInterval(currentData);
-        },
-        refetchOnWindowFocus: false,
+        refetchInterval: getRefetchInterval,
+        refetchOnWindowFocus: true,
         refetchOnMount: false,
         refetchOnReconnect: true,
         retry: 2,
