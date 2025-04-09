@@ -51,7 +51,7 @@ if [ "$1" == "status" ]; then
   print_branch "perf/render-optimization" "DONE" "Improve component rendering performance"
   print_branch "perf/code-splitting" "DONE" "Add lazy loading and code splitting"
   print_branch "perf/bundle-size" "DONE" "Optimize bundle size and dependencies"
-  print_branch "perf/caching-strategy" "TODO" "Implement comprehensive caching strategy"
+  print_branch "perf/caching-strategy" "DONE" "Implement comprehensive caching strategy"
   
   # Architecture Improvements
   print_header "Architecture Improvements"
