@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import RootErrorBoundary from './components/ErrorBoundary/RootErrorBoundary';
 import { ErrorFallbackProps } from './components/ErrorBoundary/ErrorFallback';
+import * as serviceWorkerRegistration from './utils/serviceWorkerRegistration';
 
 // Custom error fallback component for the application root
 const RootErrorFallback: React.FC<ErrorFallbackProps> = ({ error, resetError, componentName }) => (
@@ -39,3 +40,37 @@ createRoot(document.getElementById('root')!).render(
     </RootErrorBoundary>
   </StrictMode>
 );
+
+// Register the service worker for offline support and caching
+serviceWorkerRegistration.register({
+  onSuccess: registration => {
+    console.log('Service worker registered for offline use');
+  },
+  onUpdate: registration => {
+    // When a new service worker is available, show a notification or refresh
+    console.log('New content is available, please refresh');
+
+    // Optional: Add a UI notification about the update
+    const updateNotification = document.createElement('div');
+    updateNotification.className = 'update-notification';
+    updateNotification.innerHTML = `
+      <div class="update-inner">
+        <p>New version available!</p>
+        <button id="reload-app">Update Now</button>
+      </div>
+    `;
+
+    document.body.appendChild(updateNotification);
+
+    document.getElementById('reload-app')?.addEventListener('click', () => {
+      if (registration.waiting) {
+        // Send message to service worker to skip waiting and activate new service worker
+        registration.waiting.postMessage({ action: 'skipWaiting' });
+      }
+
+      // After skipWaiting, the new service worker becomes active
+      // We need to reload to ensure the new version is used
+      window.location.reload();
+    });
+  }
+});
