@@ -4,6 +4,7 @@ import { SPORTS } from '../config/sports';
 import { Sport } from '../types/sport';
 import { processNBAStats } from '../features/sports/nba/utils/statsProcessor';
 import { processNFLStats } from '../features/sports/nfl/utils/statsProcessor';
+import { processMLBStats } from '../features/sports/mlb/utils/statsProcessor';
 
 const statsCache = new Map<string, { stats: PlayerStat[]; timestamp: number; isComplete: boolean }>();
 const CACHE_TTL = 30000; // 30 seconds
@@ -52,9 +53,15 @@ export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL')
 
       const data = await response.json();
 
-      // Validate required data structure
-      if (!data?.leaders?.length) {
+      // Validate required data structure - MLB doesn't require leaders at the top level
+      if (!data?.leaders?.length && sport !== 'MLB') {
         console.log('⚠️ No leaders data found in API response');
+        return { stats: [], timestamp: now, isComplete: false };
+      }
+
+      // For MLB, validate there's at least competitors data
+      if (sport === 'MLB' && (!data?.header?.competitions?.[0]?.competitors || !data.header.competitions[0].competitors.length)) {
+        console.log('⚠️ No MLB competitor data found in API response');
         return { stats: [], timestamp: now, isComplete: false };
       }
 
@@ -68,6 +75,33 @@ export async function fetchAndProcessStats(gameId: string, sport: Sport = 'NFL')
           break;
         case 'NFL':
           stats = processNFLStats(data);
+          break;
+        case 'MLB':
+          stats = processMLBStats(data);
+          console.log(`⚾ Processed ${stats.length} MLB stats`);
+
+          // If no stats were found, add basic fallback stats from competition data
+          if (stats.length === 0 && data?.header?.competitions?.[0]?.competitors) {
+            console.log('⚾ No MLB stats found, adding fallback stats');
+
+            data.header.competitions[0].competitors.forEach((team: any) => {
+              if (team.team && team.score) {
+                const teamAbbr = team.team.abbreviation || '';
+                const score = parseInt(team.score || '0');
+
+                // Add team score
+                if (score > 0) {
+                  stats.push({
+                    name: team.homeAway === 'home' ? 'HOME' : 'AWAY',
+                    team: teamAbbr,
+                    statType: 'TEAM',
+                    value: score,
+                    displayValue: `${teamAbbr}: ${score}`
+                  });
+                }
+              }
+            });
+          }
           break;
         default:
           console.warn(`No stats processor for sport: ${sport}`);
