@@ -8,6 +8,7 @@ import { GlobalGameProvider } from './context/GlobalGameContext';
 import { SportProvider } from './context/SportContext';
 import { QueryProvider } from './providers/QueryProvider';
 import { useSport } from './context/SportContext';
+import AppErrorBoundary from './components/ErrorBoundary/AppErrorBoundary';
 
 const GameContainer = React.memo(function GameContainer() {
   const { currentSport } = useSport();
@@ -33,7 +34,9 @@ const GameContainer = React.memo(function GameContainer() {
     <div className="pt-32 pb-4 px-4 max-w-7xl mx-auto relative">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {games.map((game) => (
-          <ScoreCard key={game.id} {...game} />
+          <AppErrorBoundary key={game.id} componentName={`ScoreCard-${game.id}`}>
+            <ScoreCard {...game} />
+          </AppErrorBoundary>
         ))}
       </div>
     </div>
@@ -47,10 +50,15 @@ export default function App() {
         <GlobalGameProvider>
           <AutoScrollProvider>
             <div className="min-h-screen bg-gray-900">
-              <Header />
-              <AutoScrollContainer>
-                <GameContainer />
-              </AutoScrollContainer>
+              <AppErrorBoundary componentName="Header">
+                <Header />
+              </AppErrorBoundary>
+
+              <AppErrorBoundary componentName="GameContainer">
+                <AutoScrollContainer>
+                  <GameContainer />
+                </AutoScrollContainer>
+              </AppErrorBoundary>
             </div>
           </AutoScrollProvider>
         </GlobalGameProvider>
