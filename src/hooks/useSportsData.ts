@@ -1,73 +1,86 @@
 import { useState, useEffect } from 'react';
 import { Game } from '../types/game';
-import { Sport } from '../types/sport';
-import { getScoreboard } from '../services/nflApi';
-import { getMLBScoreboard } from '../services/mlbApi';
-import { getNBAScoreboard } from '../services/nbaApi';
-import { getNHLScoreboard } from '../services/nhlApi';
+import { sportApiServices } from '../services/api';
 import { getUpdateInterval } from '../utils/updateIntervalUtils';
 
-export function useSportsData(sport: Sport) {
-  const [games, setGames] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface SportsDataState {
+  loading: boolean;
+  games: Game[];
+  error: string | null;
+  lastUpdated: Date | null;
+}
 
+const initialState: SportsDataState = {
+  loading: true,
+  games: [],
+  error: null,
+  lastUpdated: null
+};
+
+/**
+ * Hook to fetch and manage sports data
+ * Provides automatic polling with dynamic intervals based on game state
+ */
+export function useSportsData(sport: string) {
+  const [state, setState] = useState<SportsDataState>(initialState);
+  const [pollingInterval, setPollingInterval] = useState<number>(30000); // Default 30s
+
+  // Normalize sport name to match API service keys
+  const normalizedSport = sport.toUpperCase();
+
+  // Get the appropriate API service for the sport
+  const apiService = sportApiServices[normalizedSport as keyof typeof sportApiServices];
+
+  const fetchData = async () => {
+    if (!apiService) {
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: `Unsupported sport: ${sport}`
+      }));
+      return;
+    }
+
+    try {
+      const games = await apiService.getScoreboard();
+
+      setState({
+        loading: false,
+        games,
+        error: null,
+        lastUpdated: new Date()
+      });
+
+      // Determine next polling interval based on game states
+      const newInterval = getUpdateInterval(games);
+      setPollingInterval(newInterval);
+    } catch (error) {
+      console.error(`Error fetching ${sport} data:`, error);
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        error: `Failed to load ${sport} data. Please try again.`
+      }));
+    }
+  };
+
+  // Initial data fetch and polling setup
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    let mounted = true;
+    // Reset state when sport changes
+    setState(initialState);
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        let data: Game[];
-
-        switch (sport) {
-          case 'NFL':
-            data = await getScoreboard();
-            break;
-          case 'MLB':
-            data = await getMLBScoreboard();
-            break;
-          case 'NBA':
-            data = await getNBAScoreboard();
-            break;
-          case 'NHL':
-            data = await getNHLScoreboard();
-            break;
-          default:
-            throw new Error(`Unsupported sport: ${sport}`);
-        }
-
-        if (!mounted) return;
-
-        setGames(data);
-        setError(null);
-
-        if (intervalId) {
-          clearInterval(intervalId);
-        }
-        intervalId = setInterval(fetchData, getUpdateInterval(data));
-      } catch (err) {
-        if (!mounted) return;
-        console.error(`${sport} data fetch error:`, err);
-        setError(`Failed to fetch ${sport} data`);
-        setGames([]);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
+    // Fetch data immediately
     fetchData();
 
-    return () => {
-      mounted = false;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [sport]);
+    // Set up polling with dynamic interval
+    const intervalId = setInterval(fetchData, pollingInterval);
 
-  return { games, loading, error };
+    // Cleanup on unmount or sport change
+    return () => clearInterval(intervalId);
+  }, [sport, pollingInterval]);
+
+  return {
+    ...state,
+    refetch: fetchData
+  };
 }
