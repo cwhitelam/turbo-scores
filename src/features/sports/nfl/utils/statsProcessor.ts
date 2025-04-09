@@ -1,6 +1,12 @@
-import { PlayerStat } from '../../../../types/stats';
+import { PlayerStat, StatType } from '../../../../types/stats';
+import { NFLTeamLeaders } from '../../../../types/apiResponses/nfl';
 
-export function processNFLStats(data: any): PlayerStat[] {
+/**
+ * Process NFL game stats from API response into standardized format
+ * @param data Object containing NFL team leaders data
+ * @returns Array of processed player stats
+ */
+export function processNFLStats(data: { leaders: NFLTeamLeaders[] }): PlayerStat[] {
     const stats: PlayerStat[] = [];
 
     for (const teamLeaders of data.leaders) {
@@ -31,7 +37,13 @@ export function processNFLStats(data: any): PlayerStat[] {
     return stats;
 }
 
-function parseNFLStatValue(category: string, displayValue: string): { value: number; type: 'PASS' | 'RUSH' | 'REC' | 'SACK' | 'TACKLE' | 'INT' } | null {
+/**
+ * Parse NFL stat value from display string into numeric value and type
+ * @param category The category name (e.g., 'passingYards')
+ * @param displayValue The display string (e.g., '22/30, 280 YDS')
+ * @returns Object with numeric value and stat type, or null if parsing fails
+ */
+function parseNFLStatValue(category: string, displayValue: string): { value: number; type: StatType } | null {
     if (!displayValue) return null;
 
     try {
