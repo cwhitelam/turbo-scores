@@ -36,6 +36,8 @@ type UpdateState = {
  * Custom hook that fetches and manages sports data with optimized polling
  */
 export function useSportsDataQuery(sport: Sport) {
+    console.log(`[useSportsDataQuery] Hook called with sport: ${sport}`);
+
     // Define all refs first to maintain consistent hook order
     const updateStateRef = useRef<UpdateState>({
         timestamp: 0,
@@ -55,6 +57,37 @@ export function useSportsDataQuery(sport: Sport) {
     const initialFetchDoneRef = useRef(false);
     const backgroundRef = useRef(false);
     const queryStartTimeRef = useRef(Date.now());
+    const prevSportRef = useRef<Sport>(sport);
+
+    // Reset state when sport changes
+    useEffect(() => {
+        if (prevSportRef.current !== sport) {
+            console.log(`[useSportsDataQuery] Sport changed from ${prevSportRef.current} to ${sport} - RESETTING STATE`);
+            console.log(`[useSportsDataQuery] Prior data count: ${updateStateRef.current.data.length}`);
+
+            // Clear all data when switching sports to prevent contamination
+            updateStateRef.current = {
+                timestamp: 0,
+                data: [],
+                updateCount: 0,
+                lastChangeId: '',
+                lastScores: new Map(),
+                pollingStats: {
+                    lastPollTime: 0,
+                    averageInterval: DEFAULT_INTERVAL,
+                    pollCount: 0,
+                    intervalHistory: []
+                }
+            };
+            isInitialLoadRef.current = true;
+            lastUpdateTimeRef.current = 0;
+            initialFetchDoneRef.current = false;
+            queryStartTimeRef.current = Date.now();
+            debugLog(`Sport changed from ${prevSportRef.current} to ${sport}, state reset`);
+            prevSportRef.current = sport;
+            console.log(`[useSportsDataQuery] After reset - data count: ${updateStateRef.current.data.length}`);
+        }
+    }, [sport]);
 
     // Listen for visibility changes to detect when app is in background
     useEffect(() => {
@@ -164,6 +197,8 @@ export function useSportsDataQuery(sport: Sport) {
     }, [sport]);
 
     const fetchSportData = useCallback(async (): Promise<Game[]> => {
+        console.log(`[useSportsDataQuery] Fetching data for sport: ${sport}`);
+
         if (!initialFetchDoneRef.current) {
             await new Promise(resolve => setTimeout(resolve, INITIAL_FETCH_DELAY));
             initialFetchDoneRef.current = true;
@@ -195,6 +230,17 @@ export function useSportsDataQuery(sport: Sport) {
             }
 
             const fetchTime = Date.now() - fetchStart;
+            console.log(`[useSportsDataQuery] ${sport} data fetched: ${data.length} games`);
+            if (data.length > 0) {
+                console.log(`[useSportsDataQuery] First game sample:`, {
+                    id: data[0].id,
+                    homeTeam: data[0].homeTeam?.name,
+                    homeAbbr: data[0].homeTeam?.abbreviation,
+                    awayTeam: data[0].awayTeam?.name,
+                    awayAbbr: data[0].awayTeam?.abbreviation
+                });
+            }
+
             debugLog(`${sport} data fetched in ${fetchTime}ms, ${data.length} games`);
 
             return data;
@@ -205,11 +251,14 @@ export function useSportsDataQuery(sport: Sport) {
     }, [sport]);
 
     const selectFn = useCallback((data: Game[]) => {
+        console.log(`[useSportsDataQuery] Select function called for ${sport} with ${data.length} games`);
+
         // Normalize the data
         const normalizedData = normalizeData(data);
 
         // Handle initial load
         if (isInitialLoadRef.current) {
+            console.log(`[useSportsDataQuery] Initial load for ${sport}`);
             isInitialLoadRef.current = false;
             const scoreMap = new Map(
                 normalizedData.map(g => [g.id, {
@@ -285,6 +334,17 @@ export function useSportsDataQuery(sport: Sport) {
         structuralSharing: true,
         select: selectFn
     });
+
+    // Ensure data is properly reset when sport changes
+    useEffect(() => {
+        return () => {
+            // This cleanup will run when sport changes or component unmounts
+            // It helps ensure the next sport doesn't see cached data
+            if (DEBUG) {
+                debugLog(`Cleaning up query for ${sport}`);
+            }
+        };
+    }, [sport]);
 
     return useMemo(() => ({
         games: games as Game[],

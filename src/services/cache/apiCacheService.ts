@@ -8,6 +8,7 @@
  * - Request deduplication
  */
 
+import { logger } from '../../utils/loggingUtils';
 import { cacheService, CacheOptions, CacheStorageType } from './cacheService';
 
 // Default TTLs for different types of API data
@@ -162,7 +163,8 @@ async function fetchFreshData<T>(
         cacheService.set(cacheKey, data, options);
         return data;
     } catch (error) {
-        console.error(`Failed to fetch data for ${cacheKey}:`, error);
+        // Use centralized logger instead of console.error
+        logger.error(`Failed to fetch data for ${cacheKey}:`, error);
         throw error;
     }
 }

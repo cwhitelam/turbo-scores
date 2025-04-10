@@ -32,13 +32,16 @@ export const ScoreCard = React.memo(function ScoreCard(props: Game) {
         }
     };
 
-    const convertToTeamInfo = (team: any): TeamInfo => ({
-        id: team.id || team.abbreviation,
-        name: team.name,
-        abbreviation: team.abbreviation,
-        score: team.score,
-        record: team.record
-    });
+    const convertToTeamInfo = (team: any): TeamInfo => {
+        const info = {
+            id: team.id || team.abbreviation,
+            name: team.name,
+            abbreviation: team.abbreviation,
+            score: team.score,
+            record: team.record
+        };
+        return info;
+    };
 
     const homeTeamInfo = convertToTeamInfo(props.homeTeam);
     const awayTeamInfo = convertToTeamInfo(props.awayTeam);

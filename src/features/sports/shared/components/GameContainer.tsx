@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ScoreCard } from '../../../../components/common/ScoreCard';
 import { useSportsDataQuery } from '../hooks/useSportsDataQuery';
 import { useSport } from '../../../../context/SportContext';
@@ -27,7 +27,7 @@ export const GameContainer = React.memo(function GameContainer() {
         <div className="pt-32 pb-4 px-4 max-w-7xl mx-auto relative">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {games.map((game) => (
-                    <ScoreCard key={game.id} {...game} />
+                    <ScoreCard key={`${currentSport}-${game.id}`} {...game} />
                 ))}
             </div>
         </div>

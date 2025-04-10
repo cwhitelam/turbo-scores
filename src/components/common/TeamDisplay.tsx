@@ -3,6 +3,9 @@ import { useSport } from '../../context/SportContext';
 import { Dot } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+// Environment check
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 interface TeamDisplayProps {
     team: TeamInfo;
     gameId: string;
@@ -18,16 +21,31 @@ export function TeamDisplay({ team, gameId, hasPossession, isHomeTeam, quarter }
     const [prevScore, setPrevScore] = useState(team.score);
     const [isScoreIncreased, setIsScoreIncreased] = useState(false);
 
+    // Construct a unique URL with the sport to avoid caching issues
+    const logoUrl = `https://a.espncdn.com/i/teamlogos/${sport}/500/${team.abbreviation.toLowerCase()}.png?sport=${sport}&v=${Date.now()}`;
+
+    // Handle score changes
     useEffect(() => {
         if (team.score !== prevScore && prevScore !== undefined && team.score !== undefined) {
             setIsScoreIncreased(team.score > prevScore);
             const timer = setTimeout(() => {
                 setIsScoreIncreased(false);
-            }, 1000); // Match the UPDATE_DEBOUNCE from useSportsDataQuery
+            }, 1000);
             return () => clearTimeout(timer);
         }
         setPrevScore(team.score);
     }, [team.score, prevScore]);
+
+    // Image error handler
+    const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+        // Prevent error handler from being called multiple times
+        (e.target as HTMLImageElement).onerror = null;
+
+        // Only log in development mode
+        if (isDevelopment) {
+            console.error(`Logo failed to load for ${team.abbreviation} in ${sport}`);
+        }
+    };
 
     return (
         <div
@@ -36,9 +54,11 @@ export function TeamDisplay({ team, gameId, hasPossession, isHomeTeam, quarter }
             aria-label={`${team.name} team information`}
         >
             <img
-                src={`https://a.espncdn.com/i/teamlogos/${sport}/500/${team.abbreviation.toLowerCase()}.png`}
+                src={logoUrl}
                 alt={`${team.name} logo`}
                 className="w-12 h-12 sm:w-20 sm:h-20 object-contain mx-auto mb-2 sm:mb-3 drop-shadow-lg"
+                key={`${sport}-${team.abbreviation}-${Date.now()}`} // Force re-render when sport changes
+                onError={handleImageError}
             />
             <div className="font-bold text-sm sm:text-lg mb-0.5 sm:mb-1 text-white truncate">
                 {team.name}

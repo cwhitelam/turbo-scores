@@ -1,3 +1,4 @@
+import { logger } from '../../utils/loggingUtils';
 import { apiCacheService, ApiCacheOptions } from '../cache/apiCacheService';
 import { formatDate } from '../../utils/dateUtils';
 
@@ -42,7 +43,7 @@ export abstract class BaseApiService {
                 cacheOptions
             );
         } catch (error) {
-            console.error(`${this.sportType} scoreboard API error:`, error);
+            logger.error(`${this.sportType} scoreboard API error:`, error);
             throw error;
         }
     }
@@ -68,7 +69,7 @@ export abstract class BaseApiService {
                 cacheOptions
             );
         } catch (error) {
-            console.error(`${this.sportType} game details API error:`, error);
+            logger.error(`${this.sportType} game details API error:`, error);
             throw error;
         }
     }

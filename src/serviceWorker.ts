@@ -29,20 +29,115 @@ const API_URLS = [
     '/api/summary'
 ];
 
+// Environment check
+const isDevelopment = self.location.hostname === 'localhost' ||
+    self.location.hostname === '127.0.0.1' ||
+    self.location.hostname.includes('.local');
+
+// Simple logger that only logs in development mode
+const logger = {
+    log: (...args: any[]) => {
+        if (isDevelopment) {
+            console.log('[SW]', ...args);
+        }
+    },
+    error: (...args: any[]) => {
+        if (isDevelopment) {
+            console.error('[SW]', ...args);
+        }
+    },
+    warn: (...args: any[]) => {
+        if (isDevelopment) {
+            console.warn('[SW]', ...args);
+        }
+    }
+};
+
+declare const self: ServiceWorkerGlobalScope;
+
+// TypeScript definitions for service worker
+interface WorkerGlobalScope {
+    location: Location;
+    navigator: WorkerNavigator;
+    self: ServiceWorkerGlobalScope;
+}
+
+interface Clients {
+    claim(): Promise<void>;
+    get(id: string): Promise<Client | undefined>;
+    matchAll(options?: ClientMatchOptions): Promise<Client[]>;
+    openWindow(url: string): Promise<WindowClient | null>;
+}
+
+interface ClientMatchOptions {
+    includeUncontrolled?: boolean;
+    type?: ClientType;
+}
+
+type ClientType = 'window' | 'worker' | 'sharedworker' | 'all';
+interface Client {
+    id: string;
+    type: ClientType;
+    url: string;
+}
+
+interface WindowClient extends Client {
+    focused: boolean;
+    visibilityState: VisibilityState;
+    focus(): Promise<WindowClient>;
+    navigate(url: string): Promise<WindowClient | null>;
+}
+
+interface ExtendableEvent extends Event {
+    waitUntil(promise: Promise<any>): void;
+}
+
+interface FetchEvent extends ExtendableEvent {
+    request: Request;
+    respondWith(response: Promise<Response> | Response): void;
+}
+
+interface ExtendableMessageEvent extends ExtendableEvent {
+    data: any;
+    source: Client | ServiceWorker | MessagePort | null;
+}
+
+interface ServiceWorkerGlobalScope extends WorkerGlobalScope {
+    skipWaiting(): Promise<void>;
+    clients: Clients;
+    registration: ServiceWorkerRegistration;
+    caches: CacheStorage;
+
+    addEventListener(type: 'install', listener: (event: ExtendableEvent) => void): void;
+    addEventListener(type: 'activate', listener: (event: ExtendableEvent) => void): void;
+    addEventListener(type: 'fetch', listener: (event: FetchEvent) => void): void;
+    addEventListener(type: 'message', listener: (event: ExtendableMessageEvent) => void): void;
+    addEventListener(type: string, listener: EventListener): void;
+}
+
+interface WorkerNavigator {
+    userAgent: string;
+    appVersion: string;
+    platform: string;
+    language: string;
+}
+
+type VisibilityState = 'hidden' | 'visible' | 'prerender';
+
 // Install event: Cache static assets
-self.addEventListener('install', (event: any) => {
+self.addEventListener('install', (event: ExtendableEvent) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('Caching app assets');
+                logger.log('Caching app assets');
                 return cache.addAll(ASSETS_TO_CACHE);
             })
-            .then(() => (self as any).skipWaiting())
+            .then(() => self.skipWaiting())
     );
 });
 
 // Activate event: Clean up old caches
-self.addEventListener('activate', (event: any) => {
+self.addEventListener('activate', (event: ExtendableEvent) => {
     const cacheAllowList = [CACHE_NAME, API_CACHE_NAME];
 
     event.waitUntil(
@@ -51,14 +146,14 @@ self.addEventListener('activate', (event: any) => {
                 return Promise.all(
                     cacheNames.map(cacheName => {
                         if (!cacheAllowList.includes(cacheName)) {
-                            console.log('Deleting old cache:', cacheName);
+                            logger.log('Deleting old cache:', cacheName);
                             return caches.delete(cacheName);
                         }
                         return Promise.resolve();
                     })
                 );
             })
-            .then(() => (self as any).clients.claim())
+            .then(() => self.clients.claim())
     );
 });
 
@@ -91,12 +186,19 @@ async function addToCache(cacheName: string, request: Request, response: Respons
     return response;
 }
 
+// Helper function to determine if cache should be refreshed
+// This can be customized based on app needs
+function shouldRefreshCache(url: string): boolean {
+    // Default: always refresh API caches if we have a network connection
+    return url.includes('/api/');
+}
+
 // Fetch event: Handle requests based on type
-self.addEventListener('fetch', (event: any) => {
+self.addEventListener('fetch', (event: FetchEvent) => {
     const request = event.request;
 
     // Skip cross-origin requests
-    if (!request.url.startsWith((self as any).location.origin)) {
+    if (!request.url.startsWith(self.location.origin)) {
         return;
     }
 
@@ -104,15 +206,44 @@ self.addEventListener('fetch', (event: any) => {
     if (isApiRequest(request)) {
         // Network first, then cache for API requests
         event.respondWith(
-            fetch(request)
-                .then(response => addToCache(API_CACHE_NAME, request, response))
-                .catch(() => {
-                    return caches.match(request) || Promise.resolve(
-                        new Response('Network error', {
-                            status: 408,
-                            headers: { 'Content-Type': 'text/plain' }
+            caches.match(request)
+                .then(cachedResponse => {
+                    if (cachedResponse) {
+                        // Check if we should refresh cache
+                        if (shouldRefreshCache(request.url)) {
+                            // Update cache in background
+                            fetch(request)
+                                .then(response => addToCache(CACHE_NAME, request, response))
+                                .catch(() => logger.log('Failed to refresh cache for:', request.url));
+
+                            return cachedResponse;
+                        }
+                        return cachedResponse;
+                    }
+
+                    // Not in cache, get from network
+                    return fetch(request)
+                        .then(response => {
+                            // Cache copy of response
+                            const responseToCache = response.clone();
+                            caches.open(CACHE_NAME)
+                                .then(cache => {
+                                    cache.put(request, responseToCache);
+                                })
+                                .catch(error => logger.error('Error caching response:', error));
+
+                            return response;
                         })
-                    );
+                        .catch(error => {
+                            logger.error('Network fetch failed:', error);
+                            return new Response('Network error', {
+                                status: 503,
+                                statusText: 'Service Unavailable',
+                                headers: new Headers({
+                                    'Content-Type': 'text/plain'
+                                })
+                            });
+                        });
                 })
         );
     } else if (isStaticAsset(request)) {
@@ -124,7 +255,7 @@ self.addEventListener('fetch', (event: any) => {
                         // Refresh cache in background
                         fetch(request)
                             .then(response => addToCache(CACHE_NAME, request, response))
-                            .catch(() => console.log('Failed to refresh cache for:', request.url));
+                            .catch(() => logger.log('Failed to refresh cache for:', request.url));
 
                         return cachedResponse;
                     }
@@ -133,7 +264,7 @@ self.addEventListener('fetch', (event: any) => {
                     return fetch(request)
                         .then(response => addToCache(CACHE_NAME, request, response))
                         .catch(() => {
-                            console.log('Failed to fetch asset:', request.url);
+                            logger.log('Failed to fetch asset:', request.url);
                             return new Response('Network error', {
                                 status: 408,
                                 headers: { 'Content-Type': 'text/plain' }
@@ -175,18 +306,55 @@ self.addEventListener('fetch', (event: any) => {
 });
 
 // Message event: Handle messages from client
-self.addEventListener('message', (event: any) => {
-    if (event.data && event.data.action === 'skipWaiting') {
-        (self as any).skipWaiting();
+self.addEventListener('message', (event: ExtendableMessageEvent) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
     }
 });
 
-// TypeScript interfaces for service worker events
-interface ExtendableEvent extends Event {
-    waitUntil(fn: Promise<any>): void;
+// Get offline API response
+function getOfflineApiResponse(request: Request): Response {
+    return new Response(JSON.stringify({
+        error: 'You are offline and the requested resource is not available in cache.'
+    }), {
+        headers: { 'Content-Type': 'application/json' }
+    });
 }
 
-interface FetchEvent extends Event {
-    request: Request;
-    respondWith(response: Promise<Response> | Response): void;
+// Handle API request with caching
+function handleApiRequest(request: Request): Promise<Response> {
+    // First, try the network
+    return fetch(request)
+        .then(response => {
+            // Check if we received a valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+                return response;
+            }
+
+            // Clone the response since the browser consumes the response body
+            const responseToCache = response.clone();
+
+            // Cache the response for future use
+            caches.open(API_CACHE_NAME)
+                .then(cache => {
+                    cache.put(request, responseToCache);
+                    logger.log(`Cached API response for: ${request.url}`);
+                });
+
+            return response;
+        })
+        .catch(() => {
+            // If network fails, try to get it from the cache
+            return caches.match(request)
+                .then(cachedResponse => {
+                    if (cachedResponse) {
+                        logger.log(`Serving cached API response for: ${request.url}`);
+                        return cachedResponse;
+                    }
+
+                    // If not in cache either, return offline response
+                    logger.log(`No cached data found for: ${request.url}`);
+                    return Promise.resolve(getOfflineApiResponse(request));
+                });
+        });
 } 

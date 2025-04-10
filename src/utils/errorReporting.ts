@@ -8,6 +8,8 @@ const isDev = process.env.NODE_ENV === 'development';
  */
 export const devErrorReporter: ErrorReporter = {
     captureException: (error: Error, context?: Record<string, any>) => {
+        if (!isDev) return;
+
         console.group('🐛 Error Captured in Dev Mode');
         console.error(error);
         if (context) {
@@ -16,6 +18,8 @@ export const devErrorReporter: ErrorReporter = {
         console.groupEnd();
     },
     captureMessage: (message: string, context?: Record<string, any>) => {
+        if (!isDev) return;
+
         console.group('⚠️ Message Captured in Dev Mode');
         console.warn(message);
         if (context) {
@@ -34,15 +38,21 @@ export const productionErrorReporter: ErrorReporter = {
         // In a real application, this would send the error to a service like Sentry
         // Example: Sentry.captureException(error, { extra: context });
 
-        // For now, log to console in a production-friendly way
-        console.error('[Error Report]', error.message);
+        // Only log to console in development mode
+        if (isDev) {
+            console.error('[Error Report]', error.message);
+        }
 
         // Optional: Send error to a backend API
         // sendErrorToApi(error, context);
     },
     captureMessage: (message: string, context?: Record<string, any>) => {
         // Example: Sentry.captureMessage(message, { extra: context });
-        console.warn('[Message Report]', message);
+
+        // Only log to console in development mode
+        if (isDev) {
+            console.warn('[Message Report]', message);
+        }
     },
 };
 
