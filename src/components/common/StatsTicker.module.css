@@ -36,7 +36,7 @@
 
 .tickerTrack {
     display: inline-flex;
-    animation: ticker 60s linear infinite;
+    animation: ticker 120s linear infinite;
     will-change: transform;
 }
 
